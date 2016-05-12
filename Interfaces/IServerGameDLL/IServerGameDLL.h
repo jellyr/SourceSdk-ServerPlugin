@@ -1,7 +1,7 @@
 #ifndef ISERVERGAMEDLL_H
 #define ISERVERGAMEDLL_H
 
-#include <cstdint>
+#include <stdint.h>
 
 #include "SdkPreprocessors.h"
 

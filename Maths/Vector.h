@@ -3,15 +3,29 @@
 
 #include "SdkPreprocessors.h"
 
+#include <cstring>
+
 namespace SourceSdk
 {
+	struct VectorAligned;
+
 	struct Vector
 	{
+		Vector() {}
+		Vector(const Vector& other)
+		{
+			memcpy(this, &other, sizeof(Vector));
+		}
+		Vector(const VectorAligned& other);
+		Vector(vec_t a, vec_t b, vec_t c)
+		{
+			x = a;
+			y = b;
+			z = c;
+		}
 		vec_t x;
 		vec_t y;
 		vec_t z;
-
-		vec_t make_me_128bits_struct;
 	};
 	
 	struct Vector4D
@@ -24,6 +38,23 @@ namespace SourceSdk
 	
 	struct ALIGN16 VectorAligned : Vector
 	{
+		VectorAligned() {}
+		VectorAligned(const VectorAligned& other)
+		{
+			memcpy(this, &other, sizeof(VectorAligned));
+		}
+		VectorAligned(const Vector& other)
+		{
+			this->x = other.x;
+			this->y = other.y;
+			this->z = other.z;
+		}
+		VectorAligned(vec_t a, vec_t b, vec_t c)
+		{
+			x = a;
+			y = b;
+			z = c;
+		}
 	} ALIGN16_POST;
 	
 	typedef Vector QAngle;
@@ -34,6 +65,12 @@ namespace SourceSdk
 	void VectorClear(Vector & a);
 	void VectorCopy(Vector const & a, Vector & b);
 	void VectorCopy(Vector const * a, Vector * b);
+	void VectorCopy(VectorAligned const & a, VectorAligned & b);
+	void VectorCopy(VectorAligned const * a, VectorAligned * b);
+	void VectorCopy(VectorAligned const & a, Vector & b);
+	void VectorCopy(VectorAligned const * a, Vector * b);
+	void VectorCopy(Vector const & a, VectorAligned & b);
+	void VectorCopy(Vector const * a, VectorAligned * b);
 	bool VectorIsZero(Vector const & a, vec_t tolerance = 0.01f);
 	bool VectorIsZero(Vector const * a, vec_t tolerance = 0.01f);
 	

@@ -7,6 +7,7 @@ namespace SourceSdk
 	{
 	public:
 		virtual					~IServerGameEnts001()	{}
+		virtual void			SetDebugEdictBase(edict_t *base) = 0;
 		virtual void			MarkEntitiesAsTouching( edict_t *e1, edict_t *e2 ) = 0;
 		virtual void			FreeContainingEntity( edict_t * ) = 0; 
 		virtual edict_t*		BaseEntityToEdict( CBaseEntity *pEnt ) = 0;

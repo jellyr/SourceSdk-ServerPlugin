@@ -1,6 +1,8 @@
 #ifndef IENGINETRACE_H
 #define IENGINETRACE_H
 
+#include <limits>
+
 #include "SdkPreprocessors.h"
 
 #include "../bspflags.h"

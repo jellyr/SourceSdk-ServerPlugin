@@ -1,14 +1,16 @@
 #ifndef SDK_PREPROCESSORS
 #define SDK_PREPROCESSORS
 
+#include <stdint.h> 
 #include <limits.h>
+#include <cassert>
 
-#define _AssertMsg( _exp, _msg, _executeExp, _bFatal ) do { __analysis_assume( !!(_exp) ); _msg; } while (0)
+#define Assert assert
 
-#ifdef DEBUG
-#	define Assert( _exp ) _AssertMsg( _exp, _T("Assertion Failed: ") _T(#_exp), ((void)0), false )
-#else
-#	define Assert( _exp )
+#ifdef GNUC
+#	ifndef nullptr
+#		define nullptr 0
+#	endif
 #endif
 
 #define abstract_class class
@@ -58,9 +60,9 @@
 #define RAD2DEG( x  )  ( (float)(x) * (float)(180.f / M_PI_F) )
 #define DEG2RAD( x  )  ( (float)(x) * (float)(M_PI_F / 180.f) )
 
-#define DECL_ALIGN(x)			__declspec( align( x ) )
-
 #if defined( GNUC )
+#define DECL_ALIGN(x) 			__attribute__((aligned(x)))
+
 #define ALIGN4
 #define ALIGN8 
 #define ALIGN16
@@ -73,6 +75,8 @@
 #define ALIGN32_POST DECL_ALIGN(32)
 #define ALIGN128_POST DECL_ALIGN(128)
 #else
+#define DECL_ALIGN(x)			__declspec( align( x ) )
+
 #define ALIGN4 DECL_ALIGN(4)
 #define ALIGN8 DECL_ALIGN(8)
 #define ALIGN16 DECL_ALIGN(16)
@@ -168,6 +172,7 @@
 #define GetProcAddress dlsym
 
 #endif
+
 #define CREATEINTERFACE_PROCNAME	"CreateInterface"
 #define EXPOSE_INTERFACE_FN(functionName, interfaceName, versionName) \
 	static InterfaceReg __g_Create##interfaceName##_reg(functionName, versionName);
@@ -181,8 +186,19 @@
 	static className __g_##className##_singleton; \
 	EXPOSE_SINGLE_INTERFACE_GLOBALVAR(className, interfaceName, versionName, __g_##className##_singleton)
 
-#define DLL_EXPORT				extern "C" __declspec( dllexport )
-#define DLL_IMPORT				extern "C" __declspec( dllimport )
+#ifdef WIN32
+#	define DLL_EXPORT				extern "C" __declspec( dllexport )
+#	define DLL_IMPORT				extern "C" __declspec( dllimport )
+#else
+#	if __GNUC__ >= 4
+#		define DLL_EXPORT			extern "C" __attribute__ ((visibility ("default")))
+#		define DLL_IMPORT  			__attribute__ ((visibility ("default")))
+#		define 					__cdecl __attribute__((__cdecl__))
+#	else
+#		define DLL_EXPORT			extern "C" __attribute__( dllexport )
+#		define DLL_IMPORT			extern "C" __attribute__( dllimport )
+#	endif
+#endif
 
 #define FLOW_OUTGOING	0		
 #define FLOW_INCOMING	1

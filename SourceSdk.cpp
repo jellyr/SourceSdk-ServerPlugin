@@ -1,7 +1,7 @@
 #include "SdkPreprocessors.h"
 
 #include <cstring>
-#include <string>
+#include "Misc/temp_basicstring.h"
 #include <cmath>
 #include <limits>
 #include <cstdio>
@@ -58,6 +58,13 @@ namespace SourceSdk
 		return len;
 	}
 
+	Vector::Vector(const VectorAligned& other)
+	{
+		this->x = other.x;
+		this->y = other.y;
+		this->z = other.z;
+	}
+
 	bool VectorEqual(Vector const & a, Vector const & b)
 	{
 		if(a.x != b.x) return false;
@@ -87,6 +94,44 @@ namespace SourceSdk
 	void VectorCopy(Vector const * a, Vector * b)
 	{
 		memcpy(b, a, sizeof(Vector));
+	}
+
+	void VectorCopy(VectorAligned const & a, VectorAligned & b)
+	{
+		memcpy(&b, &a, sizeof(VectorAligned));
+	}
+
+	void VectorCopy(VectorAligned const * a, VectorAligned * b)
+	{
+		memcpy(b, a, sizeof(VectorAligned));
+	}
+
+	void VectorCopy(VectorAligned const & a, Vector & b)
+	{
+		b.x = a.x;
+		b.y = a.y;
+		b.z = a.z;
+	}
+
+	void VectorCopy(VectorAligned const * a, Vector * b)
+	{
+		b->x = a->x;
+		b->y = a->y;
+		b->z = a->z;
+	}
+
+	void VectorCopy(Vector const & a, VectorAligned & b)
+	{
+		b.x = a.x;
+		b.y = a.y;
+		b.z = a.z;
+	}
+
+	void VectorCopy(Vector const * a, VectorAligned * b)
+	{
+		b->x = a->x;
+		b->y = a->y;
+		b->z = a->z;
 	}
 	
 	bool VectorIsZero(Vector const & a, vec_t tolerance /*= 0.01f*/)
@@ -1655,7 +1700,7 @@ namespace SourceSdk
 		} while( *++val != 0 );
 	}
 
-	void GetCommandLineString(std::string & cmd)
+	void GetCommandLineString(basic_string & cmd)
 	{
 #ifdef GNUC
 		char buf[1024];
@@ -1672,22 +1717,22 @@ namespace SourceSdk
 		}
 		buf[pos] = '\0';
 		fclose(pFile);
-		cmd = std::string(buf);
+		cmd = basic_string(buf);
 #else // WIN32
-		cmd = std::string(GetCommandLine());
+		cmd = basic_string(GetCommandLine());
 #endif
 	}
 
-	void GetGameDir(std::string & dir)
+	void GetGameDir(basic_string & dir)
 	{
 		dir.clear();
-		std::string cmd;
+		basic_string cmd;
 		GetCommandLineString(cmd);
 		size_t dir_start = cmd.find("-game");
-		if (dir_start == std::string::npos) return;
+		if (dir_start == basic_string::npos) return;
 		dir_start += 5;
 		while (cmd[dir_start] == ' ') ++dir_start;
-		while (cmd[dir_start] != ' ') dir.insert(dir.size(), 1, cmd[dir_start++]);
+		while (cmd[dir_start] != ' ') dir.append(cmd[dir_start++]);
 	}
 
 	void * InterfacesProxy::LoadInterface(CreateInterfaceFn factory, const char * name_no_version, int & loaded_version)
@@ -1711,23 +1756,23 @@ namespace SourceSdk
 
 	bool InterfacesProxy::Load(CreateInterfaceFn game_factory, CreateInterfaceFn interface_factory)
 	{
-		std::string game_dir;
+		basic_string game_dir;
 		GetGameDir(game_dir); // Try to see if this works when the server is launched using GUI
 		if (stricmp(game_dir.c_str(), "csgo") == 0)
 		{
-			m_game = CounterStrikeGlobalOffensive;
-			std::cerr << "Detected game CSGO\n";
+			m_game = SourceSdk::CounterStrikeGlobalOffensive;
+			std::cout << "Detected game CSGO" << std::endl;
 		}
 		else if (stricmp(game_dir.c_str(), "cstrike") == 0)
 		{
 			m_game = CounterStrikeSource;
-			std::cerr << "Detected game CSS\n";
+			std::cout << "Detected game CSS" << std::endl;
 		}
 		// add more here
 		else
 		{
 			// Could not determine, try to get appid in steam.inf
-			std::cerr << "Undetected game ...\n";
+			std::cout << "Undetected game ..." << std::endl;
 		}
 
 		m_servergamedll = LoadInterface(game_factory, "ServerGameDLL", m_servergamedll_version);
@@ -1763,12 +1808,18 @@ namespace SourceSdk
 		};
 
 		m_servergameents = LoadInterface(game_factory, "ServerGameEnts", m_servergameents_version);
+		VT_TRAP
 		if (m_servergameents == nullptr) return false;
 		switch (m_servergameents_version)
 		{
 		case 1:
+#ifdef WIN32
 			INIT_VIRTUAL_FUNCTION(m_servergameents, 4, BaseEntityToEdict);
 			INIT_VIRTUAL_FUNCTION(m_servergameents, 5, EdictToBaseEntity);
+#else
+			INIT_VIRTUAL_FUNCTION(m_servergameents, 5, BaseEntityToEdict);
+			INIT_VIRTUAL_FUNCTION(m_servergameents, 6, EdictToBaseEntity);
+#endif
 			break;
 		default:
 			std::cout << "FATAL : Unhandled ServerGameEnts version " << m_servergameents_version << "\n";
@@ -1776,6 +1827,7 @@ namespace SourceSdk
 		};
 
 		m_servergameclients = LoadInterface(game_factory, "ServerGameClients", m_servergameclients_version);
+		VT_TRAP
 		if (m_servergameclients == nullptr) return false;
 		switch (m_servergameclients_version)
 		{
@@ -1789,12 +1841,13 @@ namespace SourceSdk
 		};
 
 		m_engineserver = LoadInterface(interface_factory, "VEngineServer", m_engineserver_version);
+		VT_TRAP
 		if (m_engineserver == nullptr) return false;
 		switch (m_engineserver_version)
 		{
 		case 23:
 		{
-			if (m_game == CounterStrikeGlobalOffensive)
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 			{
 				INIT_VIRTUAL_FUNCTION(m_engineserver, 16, GetPlayerUserid);
 				INIT_VIRTUAL_FUNCTION(m_engineserver, 17, GetPlayerNetworkIDString);
@@ -1824,7 +1877,7 @@ namespace SourceSdk
 			INIT_VIRTUAL_FUNCTION(m_engineserver, 43, UserMessageBegin);
 			// SendUserMessage
 			INIT_VIRTUAL_FUNCTION(m_engineserver, 44, MessageEnd);
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 76, LogPrint);
+			INIT_VIRTUAL_FUNCTION(m_engineserver, 72, LogPrint);
 			break;
 		default:
 			std::cout << "FATAL : Unhandled VEngineServer version " << m_engineserver_version << "\n";
@@ -1911,7 +1964,7 @@ namespace SourceSdk
 
 	CVarDLLIdentifier_t InterfacesProxy::ICvar_AllocateDLLIdentifier()
 	{
-		if (m_game == GameId::CounterStrikeGlobalOffensive)
+		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
 			return static_cast<ICvar004_csgo*>(m_cvar)->AllocateDLLIdentifier();
 		}
@@ -1923,7 +1976,7 @@ namespace SourceSdk
 
 	void InterfacesProxy::ICvar_UnregisterConCommands(CVarDLLIdentifier_t id)
 	{
-		if (m_game == GameId::CounterStrikeGlobalOffensive)
+		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
 			static_cast<ICvar004_csgo*>(m_cvar)->UnregisterConCommands(id);
 		}
@@ -1945,7 +1998,7 @@ namespace SourceSdk
 
 	void* InterfacesProxy::ICvar_FindVar(const char *var_name)
 	{
-		if (m_game == GameId::CounterStrikeGlobalOffensive)
+		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
 			return static_cast<ICvar004_csgo*>(m_cvar)->FindVar(var_name);
 		}
@@ -1957,7 +2010,7 @@ namespace SourceSdk
 
 	bool InterfacesProxy::ConVar_GetBool(void *convar)
 	{
-		if (m_game == GameId::CounterStrikeGlobalOffensive)
+		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
 			return static_cast<ConVar_csgo*>(convar)->GetBool();
 		}
@@ -1970,7 +2023,7 @@ namespace SourceSdk
 	template <typename T>
 	void InterfacesProxy::ConVar_SetValue(void *convar, T v)
 	{
-		if (m_game == GameId::CounterStrikeGlobalOffensive)
+		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
 			return static_cast<ConVar_csgo*>(convar)->SetValue(v);
 		}
@@ -1983,7 +2036,7 @@ namespace SourceSdk
 	template <>
 	void InterfacesProxy::ConVar_SetValue<bool>(void *convar, bool v)
 	{
-		if (m_game == GameId::CounterStrikeGlobalOffensive)
+		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
 			return static_cast<ConVar_csgo*>(convar)->SetValue((int)v);
 		}
@@ -1995,7 +2048,7 @@ namespace SourceSdk
 
 	char const * InterfacesProxy::ConCommand_GetName(void const * const command)
 	{
-		if (m_game == GameId::CounterStrikeGlobalOffensive)
+		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
 			return static_cast<ConCommand_csgo const * const>(command)->GetName();
 		}
@@ -2007,7 +2060,7 @@ namespace SourceSdk
 
 	int InterfacesProxy::ConVar_GetInt(void* convar)
 	{
-		if (m_game == GameId::CounterStrikeGlobalOffensive)
+		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
 			return static_cast<ConVar_csgo*>(convar)->GetInt();
 		}
@@ -2019,7 +2072,7 @@ namespace SourceSdk
 
 	char const * InterfacesProxy::ConVar_GetString(void *convar)
 	{
-		if (m_game == GameId::CounterStrikeGlobalOffensive)
+		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
 			return static_cast<ConVar_csgo*>(convar)->GetString();
 		}
@@ -2031,7 +2084,7 @@ namespace SourceSdk
 
 	void* InterfacesProxy::ICvar_FindCommand(const char *name)
 	{
-		if (InterfacesProxy::m_game == GameId::CounterStrikeGlobalOffensive)
+		if (InterfacesProxy::m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
 			return static_cast<ICvar004_csgo*>(m_cvar)->FindCommand(name);
 		}

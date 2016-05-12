@@ -3,21 +3,32 @@
 
 #include "SdkPreprocessors.h"
 
-#include "IEngineTrace\IEngineTrace.h"
-#include "IPlayerInfoManager\IPlayerInfoManager.h"
-#include "IGameEventManager\IGameEventManager.h"
-#include "IServerGameClients\IServerGameClients.h"
-#include "IServerGameDLL\IServerGameDLL.h"
-#include "IServerGameEnts\IServerGameEnts.h"
-#include "IServerPluginHelpers\IServerPluginHelpers.h"
-#include "IVEngineServer\IVEngineServer.h"
-#include "Console\icvar.h"
-#include "iserverplugin.h"
-#include "Interfaces\edict.h"
-#include "Interfaces\Protobuf\netmessages.pb.h"
-#include "Interfaces\server_class.h"
+#include "Interfaces/IEngineTrace/IEngineTrace.h"
+#include "Interfaces/IPlayerInfoManager/IPlayerInfoManager.h"
+#include "Interfaces/IGameEventManager/IGameEventManager.h"
+#include "Interfaces/IServerGameClients/IServerGameClients.h"
+#include "Interfaces/IServerGameDLL/IServerGameDLL.h"
+#include "Interfaces/IServerGameEnts/IServerGameEnts.h"
+#include "Interfaces/IServerPluginHelpers/IServerPluginHelpers.h"
+#include "Interfaces/IVEngineServer/IVEngineServer.h"
+#include "Console/icvar.h"
+#include "Interfaces/iserverplugin.h"
+#include "Interfaces/edict.h"
+#include "Interfaces/Protobuf/netmessages.pb.h"
+#include "Interfaces/server_class.h"
 
-#include "Maths\Vector.h"
+#include "Maths/Vector.h"
+
+#include "Misc/temp_basicstring.h"
+
+//#define WANT_VIRTUAL_TABLES
+
+#ifdef WANT_VIRTUAL_TABLES
+#	include <signal.h>
+#	define VT_TRAP raise(SIGINT);
+#else
+#	define VT_TRAP
+#endif
 
 typedef unsigned long DWORD;
 
@@ -32,7 +43,7 @@ typedef unsigned long DWORD;
 #ifdef WIN32
 #	define INIT_VIRTUAL_FUNCTION(iface, vfid, fn) CopyVirtualFunction(IFACE_PTR( iface ), vfid , (DWORD*)(& _vfptr_##fn ))
 #else
-#	define INIT_VIRTUAL_FUNCTION(iface, vfid, fn) CopyVirtualFunction(IFACE_PTR( iface ), vfid + 1 , (DWORD*)(& _vfptr_fn ))
+#	define INIT_VIRTUAL_FUNCTION(iface, vfid, fn) CopyVirtualFunction(IFACE_PTR( iface ), vfid, (DWORD*)(& _vfptr_##fn ))
 #endif
 
 struct edict_t;
@@ -49,8 +60,8 @@ struct Ray_t;
 namespace SourceSdk
 {
 	void CopyVirtualFunction(DWORD const * copy_from_vtptr, const int vf_id, DWORD * copy_to_fn);
-	void GetCommandLineString(std::string & cmd);
-	void GetGameDir(std::string & dir);
+	void GetCommandLineString(basic_string & cmd);
+	void GetGameDir(basic_string & dir);
 
 	enum GameId
 	{

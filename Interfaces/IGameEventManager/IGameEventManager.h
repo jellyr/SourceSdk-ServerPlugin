@@ -11,10 +11,10 @@ namespace SourceSdk
 	class CGameEvent;
 	typedef unsigned long long fuck_u_visual_studio;
 
-	abstract_class IGameEvent
+	abstract_class IGameEvent_csgo
 	{
 	public:
-		virtual ~IGameEvent() {};
+		virtual ~IGameEvent_csgo() {};
 		virtual const char *GetName() const = 0;
 		virtual bool  IsReliable() const = 0;
 		virtual bool  IsLocal() const = 0; 
@@ -31,6 +31,24 @@ namespace SourceSdk
 		virtual void SetFloat( const char *keyName, float value ) = 0;
 		virtual void SetString( const char *keyName, const char *value ) = 0;
 		virtual void SetWString( const char *keyName, const wchar_t *value ) = 0;
+	};
+
+	abstract_class IGameEvent
+	{
+	public:
+		virtual ~IGameEvent() {};
+		virtual const char *GetName() const = 0;
+		virtual bool  IsReliable() const = 0;
+		virtual bool  IsLocal() const = 0;
+		virtual bool  IsEmpty(const char *keyName = NULL) = 0;
+		virtual bool  GetBool(const char *keyName = NULL, bool defaultValue = false) = 0;
+		virtual int   GetInt(const char *keyName = NULL, int defaultValue = 0) = 0;
+		virtual float GetFloat(const char *keyName = NULL, float defaultValue = 0.0f) = 0;
+		virtual const char *GetString(const char *keyName = NULL, const char *defaultValue = "") = 0;
+		virtual void SetBool(const char *keyName, bool value) = 0;
+		virtual void SetInt(const char *keyName, int value) = 0;
+		virtual void SetFloat(const char *keyName, float value) = 0;
+		virtual void SetString(const char *keyName, const char *value) = 0;
 	};
 };
 

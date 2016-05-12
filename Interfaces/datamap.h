@@ -70,20 +70,38 @@ namespace SourceSdk
 	{
 		fieldtype_t			fieldType;
 		const char			*fieldName;
-		int					fieldOffset;
+		int					fieldOffset[TD_OFFSET_COUNT];
 		unsigned short		fieldSize;
 		short				flags;
 		const char			*externalName;	
 		ISaveRestoreOps		*pSaveRestoreOps; 
-		inputfunc_t			inputFunc; 
+		int				inputFunc; 
 		datamap_t			*td;
 		int					fieldSizeInBytes;
 		struct typedescription_t *override_field;
 		int					override_count;
 		float				fieldTolerance;
-		int					flatOffset[ TD_OFFSET_COUNT ];
+	};
+
+	struct typedescription_t_csgo
+	{
+		fieldtype_t			fieldType;
+		const char			*fieldName;
+		int					fieldOffset;
+		unsigned short		fieldSize;
+		short				flags;
+		const char			*externalName;
+		ISaveRestoreOps		*pSaveRestoreOps;
+		inputfunc_t			inputFunc;
+		datamap_t			*td;
+		int					fieldSizeInBytes;
+		struct typedescription_t *override_field;
+		int					override_count;
+		float				fieldTolerance;
+		int					flatOffset[TD_OFFSET_COUNT];
 		unsigned short		flatGroup;
 	};
+
 	
 	struct datarun_t
 	{
@@ -118,7 +136,7 @@ namespace SourceSdk
 	
 	struct datamap_t
 	{
-		typedescription_t	*dataDesc;
+		void	*dataDesc;
 		int					dataNumFields;
 		char const			*dataClassName;
 		datamap_t			*baseMap;

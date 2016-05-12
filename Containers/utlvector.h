@@ -1,6 +1,7 @@
 #ifndef UTLVECTOR_H
 #define UTLVECTOR_H
 
+#include <string.h>
 #include <algorithm>
 
 #include "SdkPreprocessors.h"
