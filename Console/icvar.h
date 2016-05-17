@@ -15,7 +15,7 @@ namespace SourceSdk
 	class ICvarQuery;
 	typedef int CVarDLLIdentifier_t;
 
-	abstract_class ICvar004_csgo : public IAppSystem_csgo
+	abstract_class ICvar007_csgo : public IAppSystem_csgo
 	{
 	public:
 		virtual CVarDLLIdentifier_t AllocateDLLIdentifier() = 0;
