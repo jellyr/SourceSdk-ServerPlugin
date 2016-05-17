@@ -160,7 +160,7 @@ namespace SourceSdk
 		typedef void(VFNT * LogPrint_t)(void const * const, char const *);
 		extern volatile LogPrint_t _vfptr_LogPrint;
 
-		typedef void(VFNT * TraceRay_t)(void const * const, Ray_t const &, unsigned int, ITraceFilter*, trace_t*);
+		typedef void(VFNT * TraceRay_t)(void const * const, void const *, unsigned int, ITraceFilter*, void*);
 		extern volatile TraceRay_t _vfptr_TraceRay;
 
 		float Call_GetTickInterval();
@@ -201,7 +201,7 @@ namespace SourceSdk
 
 		void Call_LogPrint(char const *);
 
-		void Call_TraceRay(Ray_t const &, unsigned int, ITraceFilter*, trace_t*);
+		void Call_TraceRay(void const *, unsigned int, ITraceFilter*, void*);
 
 		void* LoadInterface(CreateInterfaceFn factory, const char * name_no_version, int & loaded_version);
 	

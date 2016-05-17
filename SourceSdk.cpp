@@ -466,7 +466,7 @@ namespace SourceSdk
 	public:
 		virtual bool RegisterConCommandBase( ConCommandBase_csgo *pVar )
 		{
-			static_cast<ICvar004_csgo*>(InterfacesProxy::m_cvar)->RegisterConCommand(pVar);
+			static_cast<ICvar007_csgo*>(InterfacesProxy::m_cvar)->RegisterConCommand(pVar);
 			return true;
 		}
 	};
@@ -1719,7 +1719,7 @@ namespace SourceSdk
 		fclose(pFile);
 		cmd = basic_string(buf);
 #else // WIN32
-		cmd = basic_string(GetCommandLine());
+		cmd = basic_string(GetCommandLineA());
 #endif
 	}
 
@@ -1752,6 +1752,59 @@ namespace SourceSdk
 			iface = (void*)factory(s_v, &return_code);
 		} while (iface == nullptr || return_code == IFACE_FAILED);
 		return iface;
+	}
+
+	std::function<bool(Vector const &, Vector const &, unsigned int, ITraceFilter*)> trace_ray_fn;
+	std::function<bool(Vector const &, Vector const &, Vector const &, unsigned int, ITraceFilter*)> trace_hull_fn;
+
+	void SetupTraceFunctions()
+	{
+		if (InterfacesProxy::m_game == CounterStrikeGlobalOffensive)
+		{
+			trace_ray_fn = TraceRayCSGO;
+			trace_hull_fn = TraceHullCSGO;
+		}
+		else
+		{
+			trace_ray_fn = TraceRay;
+			trace_hull_fn = TraceHull;
+		}
+	}
+
+	bool TraceRayCSGO(Vector const & start, Vector const & end, unsigned int mask, ITraceFilter* itracefilter)
+	{
+		static CGameTrace_csgo trace;
+		static Ray_t_csgo ray;
+		ray.Init(start, end);
+		InterfacesProxy::Call_TraceRay((void*)&ray, mask, itracefilter, (void*)&trace);
+		return trace.fraction == 1.0;
+	}
+
+	bool TraceRay(Vector const & start, Vector const & end, unsigned int mask, ITraceFilter* itracefilter)
+	{
+		static CGameTrace trace;
+		static Ray_t ray;
+		ray.Init(start, end);
+		InterfacesProxy::Call_TraceRay((void*)&ray, mask, itracefilter, (void*)&trace);
+		return trace.fraction == 1.0;
+	}
+
+	bool TraceHullCSGO(Vector const & dot, Vector const & mins, Vector const & maxs, unsigned int mask, ITraceFilter* itracefilter)
+	{
+		static CGameTrace_csgo trace;
+		static Ray_t_csgo ray;
+		ray.Init(dot, dot, mins, maxs);
+		InterfacesProxy::Call_TraceRay((void*)&ray, mask, itracefilter, (void*)&trace);
+		return trace.DidHit();
+	}
+
+	bool TraceHull(Vector const & dot, Vector const & mins, Vector const & maxs, unsigned int mask, ITraceFilter* itracefilter)
+	{
+		static CGameTrace_csgo trace;
+		static Ray_t_csgo ray;
+		ray.Init(dot, dot, mins, maxs);
+		InterfacesProxy::Call_TraceRay((void*)&ray, mask, itracefilter, (void*)&trace);
+		return trace.DidHit();
 	}
 
 	bool InterfacesProxy::Load(CreateInterfaceFn game_factory, CreateInterfaceFn interface_factory)
@@ -1921,13 +1974,10 @@ namespace SourceSdk
 			return false;
 		};
 
-		m_cvar = (ICvar004*)LoadInterface(interface_factory, "VEngineCvar", m_enginecvar_version);
+		m_cvar = LoadInterface(interface_factory, "VEngineCvar", m_enginecvar_version);
 		if (m_cvar == nullptr) return false;
-		if (m_enginecvar_version != 4)
-		{
-			std::cout << "FATAL : Unhandled VEngineCvar version " << m_enginecvar_version << "\n";
-			return false;
-		}
+
+		SetupTraceFunctions();
 
 		return true;
 	}
@@ -1959,14 +2009,14 @@ namespace SourceSdk
 
 	void InterfacesProxy::ICvar_RegisterConCommand(ConCommandBase_csgo *pCommandBase)
 	{
-		static_cast<ICvar004_csgo*>(m_cvar)->RegisterConCommand(pCommandBase);
+		static_cast<ICvar007_csgo*>(m_cvar)->RegisterConCommand(pCommandBase);
 	}
 
 	CVarDLLIdentifier_t InterfacesProxy::ICvar_AllocateDLLIdentifier()
 	{
 		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
-			return static_cast<ICvar004_csgo*>(m_cvar)->AllocateDLLIdentifier();
+			return static_cast<ICvar007_csgo*>(m_cvar)->AllocateDLLIdentifier();
 		}
 		else
 		{
@@ -1978,7 +2028,7 @@ namespace SourceSdk
 	{
 		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
-			static_cast<ICvar004_csgo*>(m_cvar)->UnregisterConCommands(id);
+			static_cast<ICvar007_csgo*>(m_cvar)->UnregisterConCommands(id);
 		}
 		else
 		{
@@ -1993,14 +2043,14 @@ namespace SourceSdk
 
 	void InterfacesProxy::ICvar_UnregisterConCommand(ConCommandBase_csgo *pCommandBase)
 	{
-		static_cast<ICvar004_csgo*>(m_cvar)->UnregisterConCommand(pCommandBase);
+		static_cast<ICvar007_csgo*>(m_cvar)->UnregisterConCommand(pCommandBase);
 	}
 
 	void* InterfacesProxy::ICvar_FindVar(const char *var_name)
 	{
 		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
-			return static_cast<ICvar004_csgo*>(m_cvar)->FindVar(var_name);
+			return static_cast<ICvar007_csgo*>(m_cvar)->FindVar(var_name);
 		}
 		else
 		{
@@ -2086,7 +2136,7 @@ namespace SourceSdk
 	{
 		if (InterfacesProxy::m_game == SourceSdk::CounterStrikeGlobalOffensive)
 		{
-			return static_cast<ICvar004_csgo*>(m_cvar)->FindCommand(name);
+			return static_cast<ICvar007_csgo*>(m_cvar)->FindCommand(name);
 		}
 		else
 		{
@@ -2265,7 +2315,7 @@ namespace SourceSdk
 			_vfptr_LogPrint(m_engineserver, message);
 		}
 
-		void Call_TraceRay(Ray_t const & ray, unsigned int mask, ITraceFilter* filter, trace_t* trace)
+		void Call_TraceRay(void const * ray, unsigned int mask, ITraceFilter* filter, void* trace)
 		{
 			_vfptr_TraceRay(m_enginetrace, ray, mask, filter, trace);
 		}

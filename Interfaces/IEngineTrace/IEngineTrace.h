@@ -1,6 +1,7 @@
 #ifndef IENGINETRACE_H
 #define IENGINETRACE_H
 
+#include <functional>
 #include <limits>
 
 #include "SdkPreprocessors.h"
@@ -25,17 +26,19 @@ namespace SourceSdk
 		VectorAligned  m_Delta;
 		VectorAligned  m_StartOffset;
 		VectorAligned  m_Extents;
-		const matrix3x4_t *m_pWorldAxisTransform;
+		//const matrix3x4_t *m_pWorldAxisTransform; // FIXME
 		bool	m_IsRay;
 		bool	m_IsSwept;
 
-		Ray_t() : m_pWorldAxisTransform( NULL )	{}
+		Ray_t() {}
 
 		void Init( Vector const& start, Vector const& end )
 		{
+			VectorClear(m_Extents);
+			VectorClear(m_StartOffset);
+
 			VectorSub( end, start, m_Delta );
 			m_IsSwept = (VectorMagnitudeSqr(m_Delta) != 0);
-			memset(&m_StartOffset, 0, 2 * sizeof(VectorAligned) + sizeof(matrix3x4_t*));
 			m_IsRay = true;
 			VectorCopy( start, m_Start );
 		}
@@ -43,15 +46,14 @@ namespace SourceSdk
 		void Init( Vector const& start, Vector const& end, Vector const& mins, Vector const& maxs )
 		{
 			VectorSub( end, start, m_Delta );
-			m_pWorldAxisTransform = NULL;
 			m_IsSwept = (VectorMagnitudeSqr(m_Delta) != 0);
 			VectorSub( maxs, mins, m_Extents );
-			VectorMultiply(m_Extents, 0.5);
+			VectorMultiply(m_Extents, 0.5f);
 			m_IsRay = (VectorMagnitudeSqr(m_Extents) < 1e-6);
 			VectorAdd( mins, maxs, m_StartOffset );
-			VectorMultiply(m_StartOffset, 0.5);
+			VectorMultiply(m_StartOffset, 0.5f);
 			VectorAdd( start, m_StartOffset, m_Start );
-			VectorMultiply(m_StartOffset, -1.0);
+			VectorMultiply(m_StartOffset, -1.0f);
 		}
 
 		Vector InvDelta() const
@@ -67,6 +69,57 @@ namespace SourceSdk
 		}
 
 	private:
+	};
+
+	struct Ray_t_csgo
+	{
+		VectorAligned  m_Start;
+		VectorAligned  m_Delta;
+		VectorAligned  m_StartOffset;
+		VectorAligned  m_Extents;
+		const matrix3x4_t *m_pWorldAxisTransform;
+		bool	m_IsRay;
+		bool	m_IsSwept;
+
+		Ray_t_csgo() : m_pWorldAxisTransform(nullptr) {}
+
+		void Init(Vector const& start, Vector const& end)
+		{
+			VectorClear(m_Extents);
+			VectorClear(m_StartOffset);
+			m_pWorldAxisTransform = nullptr;
+
+			VectorSub(end, start, m_Delta);
+			m_IsSwept = (VectorMagnitudeSqr(m_Delta) != 0);
+			m_IsRay = true;
+			VectorCopy(start, m_Start);
+		}
+
+		void Init(Vector const& start, Vector const& end, Vector const& mins, Vector const& maxs)
+		{
+			m_pWorldAxisTransform = nullptr;
+			VectorSub(end, start, m_Delta);
+			m_IsSwept = (VectorMagnitudeSqr(m_Delta) != 0);
+			VectorSub(maxs, mins, m_Extents);
+			VectorMultiply(m_Extents, 0.5f);
+			m_IsRay = (VectorMagnitudeSqr(m_Extents) < 1e-6);
+			VectorAdd(mins, maxs, m_StartOffset);
+			VectorMultiply(m_StartOffset, 0.5f);
+			VectorAdd(start, m_StartOffset, m_Start);
+			VectorMultiply(m_StartOffset, -1.0f);
+		}
+
+		Vector InvDelta() const
+		{
+			Vector vecInvDelta;
+			if (m_Delta.x) vecInvDelta.x = 1.0f / m_Delta.x;
+			else vecInvDelta.x = std::numeric_limits<vec_t>::max();
+			if (m_Delta.y) vecInvDelta.y = 1.0f / m_Delta.y;
+			else vecInvDelta.y = std::numeric_limits<vec_t>::max();
+			if (m_Delta.z) vecInvDelta.z = 1.0f / m_Delta.z;
+			else vecInvDelta.z = std::numeric_limits<vec_t>::max();
+			return vecInvDelta;
+		}
 	};
 
 	struct cplane_t
@@ -113,16 +166,11 @@ namespace SourceSdk
 	class CGameTrace : public CBaseTrace
 	{
 	public:
-		bool DidHitWorld() const;
-		bool DidHitNonWorldEntity() const;
-		int GetEntityIndex() const;
 		bool DidHit() const;
-	public:
 		float			fractionleftsolid;
 		csurface_t		surface;
 		int				hitgroup;
 		short			physicsbone;
-		unsigned short	worldSurfaceIndex;
 		CBaseEntity *m_pEnt;
 		int			hitbox;
 		CGameTrace() {}
@@ -135,7 +183,26 @@ namespace SourceSdk
 		return fraction < 1 || allsolid || startsolid; 
 	}
 
-	typedef CGameTrace trace_t;
+	class CGameTrace_csgo : public CBaseTrace
+	{
+	public:
+		bool DidHit() const;
+		float			fractionleftsolid;
+		csurface_t		surface;
+		int				hitgroup;
+		short			physicsbone;
+		unsigned short	worldSurfaceIndex;
+		CBaseEntity *m_pEnt;
+		int			hitbox;
+		CGameTrace_csgo() {}
+	private:
+		CGameTrace_csgo(const CGameTrace_csgo& vOther);
+	};
+
+	inline bool CGameTrace_csgo::DidHit() const
+	{
+		return fraction < 1 || allsolid || startsolid;
+	}
 
 	enum TraceType_t
 	{
@@ -296,6 +363,20 @@ namespace SourceSdk
 		int							m_nEntityCount;
 		CUtlVector<IHandleEntity*>	m_aEntityList;
 	};
+
+	/*
+		Helpers functions to trace
+	*/
+
+	extern void SetupTraceFunctions();
+
+	extern bool TraceRayCSGO(Vector const &, Vector const &, unsigned int, ITraceFilter*);
+	extern bool TraceHullCSGO(Vector const &, Vector const &, Vector const &, unsigned int, ITraceFilter*);
+	extern bool TraceRay(Vector const &, Vector const &, unsigned int, ITraceFilter*);
+	extern bool TraceHull(Vector const &, Vector const &, Vector const &, unsigned int, ITraceFilter*);
+
+	extern std::function<bool(Vector const &, Vector const &, unsigned int, ITraceFilter*)> trace_ray_fn;
+	extern std::function<bool(Vector const &, Vector const &, Vector const &, unsigned int, ITraceFilter*)> trace_hull_fn;
 };
 
 #include "IEngineTrace003.h"
