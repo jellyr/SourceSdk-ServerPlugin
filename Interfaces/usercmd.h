@@ -22,10 +22,6 @@ namespace SourceSdk
 		{
 		}
 		virtual ~CUserCmd() { };
-		void Reset()
-		{
-			memset(this, 0, sizeof(CUserCmd));
-		}
 		CUserCmd& operator =(const CUserCmd& src)
 		{
 			if (this == &src)
