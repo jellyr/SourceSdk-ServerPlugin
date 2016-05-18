@@ -192,144 +192,51 @@ namespace SourceSdk
 		serverCount = 0;
 	}
 
-	class CBaseEdict
+	struct edict_t_csgo
 	{
-	public:
-		IServerEntity*			GetIServerEntity();
-		const IServerEntity*	GetIServerEntity() const;
 		IServerNetworkable*		GetNetworkable();
 		IServerUnknown*			GetUnknown();
-		void				SetEdict( IServerUnknown *pUnk, bool bFullEdict );
-		int					AreaNum() const;
 #undef GetClassName
 		const char *		GetClassName() const;
 		bool				IsFree() const;
-		void				SetFree();
-		void				ClearFree();
-		bool				HasStateChanged() const;
-		void				ClearStateChanged();
-		void				StateChanged();
-		void				StateChanged( unsigned short offset );
-		void				ClearTransmitState();
-		void SetChangeInfo( unsigned short info );
-		void SetChangeInfoSerialNumber( unsigned short sn );
-		unsigned short	 GetChangeInfo() const;
-		unsigned short	 GetChangeInfoSerialNumber() const;
-	public:
-		int	m_fStateFlags;	
-	#if VALVE_LITTLE_ENDIAN
+		int	m_fStateFlags;
+#if VALVE_LITTLE_ENDIAN
 		short m_NetworkSerialNumber;
 		short m_EdictIndex;
-	#else
+#else
 		short m_EdictIndex;
 		short m_NetworkSerialNumber;
-	#endif
+#endif
 		IServerNetworkable	*m_pNetworkable;
-		IServerUnknown		*m_pUnk;		
+		IServerUnknown		*m_pUnk;
 	};
 
-	inline IServerEntity* CBaseEdict::GetIServerEntity()
-	{
-	}
+	struct edict_t : edict_t_csgo
+	{	
+		float		freetime;
+	};
 
-	inline bool CBaseEdict::IsFree() const
+	inline bool edict_t_csgo::IsFree() const
 	{
 		return (m_fStateFlags & FL_EDICT_FREE) != 0;
 	}
 
-	inline bool	CBaseEdict::HasStateChanged() const
-	{
-	}
-
-	inline void	CBaseEdict::ClearStateChanged()
-	{
-	}
-
-	inline void	CBaseEdict::StateChanged()
-	{
-	}
-
-	inline void	CBaseEdict::StateChanged( unsigned short offset )
-	{
-	}
-
-	inline void CBaseEdict::SetFree()
-	{
-		m_fStateFlags |= FL_EDICT_FREE;
-	}
-
-	inline void CBaseEdict::ClearFree()
-	{
-		m_fStateFlags &= ~FL_EDICT_FREE;
-	}
-
-	inline void	CBaseEdict::ClearTransmitState()
-	{
-		m_fStateFlags &= ~(FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_DONTSEND);
-	}
-
-	inline const IServerEntity* CBaseEdict::GetIServerEntity() const
-	{
-	}
-
-	inline IServerUnknown* CBaseEdict::GetUnknown()
+	inline IServerUnknown* edict_t_csgo::GetUnknown()
 	{
 		return m_pUnk;
 	}
 
-	inline IServerNetworkable* CBaseEdict::GetNetworkable()
+	inline IServerNetworkable* edict_t_csgo::GetNetworkable()
 	{
 		return m_pNetworkable;
 	}
 
-	inline void CBaseEdict::SetEdict( IServerUnknown *pUnk, bool bFullEdict )
-	{
-		m_pUnk = pUnk;
-		if ( (pUnk != NULL) && bFullEdict )
-		{
-			m_fStateFlags = FL_EDICT_FULL;
-		}
-		else
-		{
-			m_fStateFlags = 0;
-		}
-	}
-
-	inline int CBaseEdict::AreaNum() const
-	{
-	}
-
-	inline const char *	CBaseEdict::GetClassName() const
+	inline const char *	edict_t_csgo::GetClassName() const
 	{
 		if ( !m_pUnk )
 			return "";
 		return m_pNetworkable->GetClassName();
 	}
-
-	inline void CBaseEdict::SetChangeInfo( unsigned short info )
-	{
-	}
-
-	inline void CBaseEdict::SetChangeInfoSerialNumber( unsigned short sn )
-	{
-	}
-
-	inline unsigned short CBaseEdict::GetChangeInfo() const
-	{
-		return 0;
-	}
-
-	inline unsigned short CBaseEdict::GetChangeInfoSerialNumber() const
-	{
-		return 0;
-	}
-
-	struct edict_t : public CBaseEdict
-	{
-	public:
-		ICollideable *GetCollideable();
-		float		freetime;	
-	};
 };
 
 #endif // EDICT_H
