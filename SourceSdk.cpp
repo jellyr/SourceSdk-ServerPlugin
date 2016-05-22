@@ -1591,6 +1591,8 @@ namespace SourceSdk
 		s_pInterfaceRegs = this;
 	}
 	
+	/*
+	
 	void* CreateInterfaceInternal( const char *pName, int *pReturnCode )
 	{
 		InterfaceReg *pCur;
@@ -1618,6 +1620,8 @@ namespace SourceSdk
 	{
 		return CreateInterfaceInternal( pName, pReturnCode );
 	}
+
+	*/
 	
 	int BfGetNumBitsLeft(bf_write const * buffer)
 	{
@@ -1867,11 +1871,27 @@ namespace SourceSdk
 		{
 		case 1:
 #ifdef WIN32
-			INIT_VIRTUAL_FUNCTION(m_servergameents, 4, BaseEntityToEdict);
-			INIT_VIRTUAL_FUNCTION(m_servergameents, 5, EdictToBaseEntity);
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				INIT_VIRTUAL_FUNCTION(m_servergameents, 3, BaseEntityToEdict);
+				INIT_VIRTUAL_FUNCTION(m_servergameents, 4, EdictToBaseEntity);
+			}
+			else
+			{
+				INIT_VIRTUAL_FUNCTION(m_servergameents, 4, BaseEntityToEdict);
+				INIT_VIRTUAL_FUNCTION(m_servergameents, 5, EdictToBaseEntity);
+			}
 #else
-			INIT_VIRTUAL_FUNCTION(m_servergameents, 5, BaseEntityToEdict);
-			INIT_VIRTUAL_FUNCTION(m_servergameents, 6, EdictToBaseEntity);
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				INIT_VIRTUAL_FUNCTION(m_servergameents, 4, BaseEntityToEdict);
+				INIT_VIRTUAL_FUNCTION(m_servergameents, 5, EdictToBaseEntity);
+			}
+			else
+			{
+				INIT_VIRTUAL_FUNCTION(m_servergameents, 5, BaseEntityToEdict);
+				INIT_VIRTUAL_FUNCTION(m_servergameents, 6, EdictToBaseEntity);
+			}
 #endif
 			break;
 		default:
@@ -1886,7 +1906,14 @@ namespace SourceSdk
 		{
 		case 3:
 		case 4:
-			INIT_VIRTUAL_FUNCTION(m_servergameclients, 12, ClientEarPosition);
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				INIT_VIRTUAL_FUNCTION(m_servergameclients, 13, ClientEarPosition);
+			}
+			else
+			{
+				INIT_VIRTUAL_FUNCTION(m_servergameclients, 12, ClientEarPosition);
+			}
 			break;
 		default:
 			std::cout << "FATAL : Unhandled ServerGameClients version " << m_servergameclients_version << "\n";
@@ -1911,7 +1938,8 @@ namespace SourceSdk
 				INIT_VIRTUAL_FUNCTION(m_engineserver, 37, ServerCommand);
 				INIT_VIRTUAL_FUNCTION(m_engineserver, 38, ServerExecute);
 				// UserMessageBegin
-				INIT_VIRTUAL_FUNCTION(m_engineserver, 43, MessageEnd);
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 44, MessageEnd);
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 45, SendUserMessage);
 				INIT_VIRTUAL_FUNCTION(m_engineserver, 72, LogPrint);
 				break;
 			}
