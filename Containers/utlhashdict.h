@@ -27,7 +27,7 @@ static unsigned g_nRandomValues[256] =
 	138,	243,	 28,	185,	 62,	 59,	240,	202,	234,	 99,	 77,	 73,	199,	137,	 95,	165,
 };
 
-unsigned HashString(const char *pszKey)
+inline unsigned HashString(const char *pszKey)
 {
 	const uint8_t *k = (const uint8_t *)pszKey;
 	unsigned 	even = 0,
@@ -46,7 +46,7 @@ unsigned HashString(const char *pszKey)
 	return (even << 8) | odd;
 }
 
-unsigned HashStringCaseless(const char *pszKey)
+inline unsigned HashStringCaseless(const char *pszKey)
 {
 	const uint8_t *k = (const uint8_t *)pszKey;
 	unsigned	even = 0,
