@@ -92,10 +92,10 @@ namespace SourceSdk
 		short				flags;
 		const char			*externalName;
 		ISaveRestoreOps		*pSaveRestoreOps;
-		inputfunc_t			inputFunc;
+		int			inputFunc;
 		datamap_t			*td;
 		int					fieldSizeInBytes;
-		struct typedescription_t *override_field;
+		typedescription_t_csgo *override_field;
 		int					override_count;
 		float				fieldTolerance;
 		int					flatOffset[TD_OFFSET_COUNT];
