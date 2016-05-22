@@ -467,12 +467,12 @@ namespace SourceSdk
 	public:
 		typedef SendProp PropType;
 					SendTable();
-					SendTable( SendProp *pProps, int nProps, char *pNetTableName );
+					SendTable(PropType *pProps, int nProps, char *pNetTableName );
 					~SendTable();
-		void		Construct( SendProp *pProps, int nProps, char *pNetTableName );
+		void		Construct(PropType *pProps, int nProps, char *pNetTableName );
 		const char*	GetName() const;
 		int			GetNumProps() const;
-		void*	GetProp( int i );
+		PropType*	GetProp( int i );
 		bool		IsInitialized() const;
 		void		SetInitialized( bool bInitialized );
 		void		SetWriteFlag(bool bHasBeenWritten);
@@ -480,7 +480,7 @@ namespace SourceSdk
 		bool		HasPropsEncodedAgainstTickCount() const;
 		void		SetHasPropsEncodedAgainstTickcount( bool bState );
 	public:
-		SendProp	*m_pProps;
+		PropType	*m_pProps;
 		int			m_nProps;
 		char		*m_pNetTableName;
 		CSendTablePrecalc	*m_pPrecalc;
@@ -501,7 +501,7 @@ namespace SourceSdk
 		return m_nProps;
 	}
 
-	inline void* SendTable::GetProp( int i )
+	inline SendTable::PropType* SendTable::GetProp( int i )
 	{
 		return &m_pProps[i];
 	}
@@ -532,6 +532,80 @@ namespace SourceSdk
 	}
 
 	inline void SendTable::SetHasPropsEncodedAgainstTickcount( bool bState )
+	{
+		m_bHasPropsEncodedAgainstCurrentTickCount = bState;
+	}
+
+	class SendTable_csgo
+	{
+	public:
+		typedef SendProp_csgo PropType;
+		SendTable_csgo();
+		SendTable_csgo(PropType *pProps, int nProps, char *pNetTableName);
+		~SendTable_csgo();
+		void		Construct(PropType *pProps, int nProps, char *pNetTableName);
+		const char*	GetName() const;
+		int			GetNumProps() const;
+		PropType*	GetProp(int i);
+		bool		IsInitialized() const;
+		void		SetInitialized(bool bInitialized);
+		void		SetWriteFlag(bool bHasBeenWritten);
+		bool		GetWriteFlag() const;
+		bool		HasPropsEncodedAgainstTickCount() const;
+		void		SetHasPropsEncodedAgainstTickcount(bool bState);
+	public:
+		PropType	*m_pProps;
+		int			m_nProps;
+		char		*m_pNetTableName;
+		CSendTablePrecalc	*m_pPrecalc;
+	protected:
+		bool		m_bInitialized : 1;
+		bool		m_bHasBeenWritten : 1;
+		bool		m_bHasPropsEncodedAgainstCurrentTickCount : 1;
+	};
+
+
+	inline const char* SendTable_csgo::GetName() const
+	{
+		return m_pNetTableName;
+	}
+
+	inline int SendTable_csgo::GetNumProps() const
+	{
+		return m_nProps;
+	}
+
+	inline SendTable_csgo::PropType* SendTable_csgo::GetProp(int i)
+	{
+		return &m_pProps[i];
+	}
+
+	inline bool SendTable_csgo::IsInitialized() const
+	{
+		return m_bInitialized;
+	}
+
+	inline void SendTable_csgo::SetInitialized(bool bInitialized)
+	{
+		m_bInitialized = bInitialized;
+	}
+
+	inline bool SendTable_csgo::GetWriteFlag() const
+	{
+		return m_bHasBeenWritten;
+	}
+
+	inline void SendTable_csgo::SetWriteFlag(bool bHasBeenWritten)
+	{
+		m_bHasBeenWritten = bHasBeenWritten;
+	}
+
+	inline bool SendTable_csgo::HasPropsEncodedAgainstTickCount() const
+	{
+		return m_bHasPropsEncodedAgainstCurrentTickCount;
+	}
+
+	inline void SendTable_csgo::SetHasPropsEncodedAgainstTickcount(bool bState)
 	{
 		m_bHasPropsEncodedAgainstCurrentTickCount = bState;
 	}
