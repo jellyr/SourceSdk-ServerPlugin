@@ -1,3 +1,8 @@
-*
+*.*
+*/Makefile
+SEBS
+golden*
 !you_must_install_me.txt
 !.gitignore
+!vsprojects/libprotobuf.vcxproj
+!vsprojects/libprotobuf.vcxproj.filters
