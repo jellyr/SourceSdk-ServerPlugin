@@ -9,7 +9,13 @@ namespace SourceSdk
 {
 	struct inputdata_t;
 
-	typedef void (CBaseEntity::*inputfunc_t)(inputdata_t &data);
+	//typedef void (CBaseEntity::*inputfunc_t)(inputdata_t &data);
+
+#ifdef WIN32
+	typedef uint32_t inputfunc_t;
+#else
+	typedef uint64_t inputfunc_t;
+#endif
 
 	struct datamap_t;
 	struct typedescription_t;
@@ -75,7 +81,7 @@ namespace SourceSdk
 		short				flags;
 		const char			*externalName;	
 		ISaveRestoreOps		*pSaveRestoreOps; 
-		int				inputFunc; 
+		inputfunc_t				inputFunc;
 		datamap_t			*td;
 		int					fieldSizeInBytes;
 		struct typedescription_t *override_field;
@@ -92,7 +98,7 @@ namespace SourceSdk
 		short				flags;
 		const char			*externalName;
 		ISaveRestoreOps		*pSaveRestoreOps;
-		int			inputFunc;
+		inputfunc_t			inputFunc;
 		datamap_t			*td;
 		int					fieldSizeInBytes;
 		typedescription_t_csgo *override_field;
