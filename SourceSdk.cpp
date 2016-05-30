@@ -1627,6 +1627,47 @@ namespace SourceSdk
 	{
 		return buffer->m_nDataBits - buffer->m_iCurBit;
 	}
+
+	class CBitWriteMasksInit
+	{
+	public:
+		static unsigned long g_LittleBits[32];
+
+		CBitWriteMasksInit()
+		{
+			for (unsigned int littleBit = 0; littleBit < 32; littleBit++)
+				(&g_LittleBits[littleBit])[0] = LittleDWord(1u << littleBit);
+		}
+	};
+
+	static CBitWriteMasksInit g_BitWriteMasksInit;
+
+	unsigned long CBitWriteMasksInit::g_LittleBits[32];
+
+	inline void BfWriteBit(bf_write * buffer, bool value)
+	{
+#if __i386__
+		if (value)
+			buffer->m_pData[buffer->m_iCurBit >> 5] |= 1u << (buffer->m_iCurBit & 31);
+		else
+			buffer->m_pData[buffer->m_iCurBit >> 5] &= ~(1u << (buffer->m_iCurBit & 31));
+#else
+		if (value)
+			buffer->m_pData[buffer->m_iCurBit >> 5] |= CBitWriteMasksInit::g_LittleBits[buffer->m_iCurBit & 31];
+		else
+			buffer->m_pData[buffer->m_iCurBit >> 5] &= ~CBitWriteMasksInit::g_LittleBits[buffer->m_iCurBit & 31];
+#endif
+
+		++buffer->m_iCurBit;
+	}
+
+	void BfWriteSBitLong(bf_write * buffer, long const data, size_t const numBits)
+	{
+		for (size_t i = 0; i < numBits; i++)
+		{
+			BfWriteBit(buffer, !!(data & (1 << i)));
+		}
+	}
 	
 	void BfWriteByte(bf_write * buffer, int val)
 	{
