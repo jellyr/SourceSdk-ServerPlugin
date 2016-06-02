@@ -5,7 +5,11 @@
 #include <limits.h>
 #include <cassert>
 
-#define Assert assert
+#ifdef DEBUG
+#	define Assert assert
+#else
+#	define Assert(x)
+#endif
 
 #ifdef GNUC
 #	ifndef nullptr
