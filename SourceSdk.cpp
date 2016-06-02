@@ -1644,7 +1644,7 @@ namespace SourceSdk
 
 	unsigned long CBitWriteMasksInit::g_LittleBits[32];
 
-	inline void BfWriteBit(bf_write * buffer, bool value)
+	inline void BfWriteBit(bf_write * buffer, int value)
 	{
 #if __i386__
 		if (value)
@@ -1668,6 +1668,17 @@ namespace SourceSdk
 			BfWriteBit(buffer, !!(data & (1 << i)));
 		}
 	}
+
+	/*template <typename type>
+	void BfWriteNBits(bf_write * buffer, type const data, size_t const numBits)
+	{
+		static_assert(numBits <= sizeof(type) * 4, "Bits overflow");
+
+		for (size_t i = 0; i < numBits; i++)
+		{
+			BfWriteBit(buffer, !!(data & (1 << i)));
+		}
+	}*/
 	
 	void BfWriteByte(bf_write * buffer, int val)
 	{
