@@ -36,7 +36,7 @@ namespace SourceSdk
 	static int s_nCVarFlag = 0;
 	static bool s_bRegistered = false;
 	InterfaceReg *InterfaceReg::s_pInterfaceRegs = nullptr;
-	static bool s_bConnected = false;
+	//static bool s_bConnected = false;
 
 	int snprintf(char *pDest, int maxLen, char const *pFormat, ...)
 	{
@@ -497,7 +497,7 @@ namespace SourceSdk
 
 		while (pszSetString[i])
 		{
-			pSetBuffer->set[pszSetString[i]] = 1;
+			pSetBuffer->set[(unsigned char)pszSetString[i]] = 1;
 			i++;
 		}
 
@@ -1232,7 +1232,7 @@ namespace SourceSdk
 
 		//g_pCVar->CallGlobalChangeCallbacks( this, pszOldValue, flOldValue );
 
-		stackfree( pszOldValue );
+		//stackfree( pszOldValue );
 	}
 
 	bool ConVar_csgo::ClampValue( float& value )
@@ -1468,7 +1468,7 @@ namespace SourceSdk
 			m_fnChangeCallback(this, pszOldValue, flOldValue);
 		}
 		//g_pCVar->CallGlobalChangeCallbacks(this, pszOldValue, flOldValue);
-		stackfree(pszOldValue);
+		//stackfree(pszOldValue);
 	}
 
 	bool ConVar::ClampValue(float& value)
@@ -1628,38 +1628,9 @@ namespace SourceSdk
 		return buffer->m_nDataBits - buffer->m_iCurBit;
 	}
 
-	class CBitWriteMasksInit
-	{
-	public:
-		static unsigned long g_LittleBits[32];
-
-		CBitWriteMasksInit()
-		{
-			for (unsigned int littleBit = 0; littleBit < 32; littleBit++)
-				(&g_LittleBits[littleBit])[0] = LittleDWord(1u << littleBit);
-		}
-	};
-
-	static CBitWriteMasksInit g_BitWriteMasksInit;
+	CBitWriteMasksInit g_BitWriteMasksInit;
 
 	unsigned long CBitWriteMasksInit::g_LittleBits[32];
-
-	inline void BfWriteBit(bf_write * buffer, int value)
-	{
-#if __i386__
-		if (value)
-			buffer->m_pData[buffer->m_iCurBit >> 5] |= 1u << (buffer->m_iCurBit & 31);
-		else
-			buffer->m_pData[buffer->m_iCurBit >> 5] &= ~(1u << (buffer->m_iCurBit & 31));
-#else
-		if (value)
-			buffer->m_pData[buffer->m_iCurBit >> 5] |= CBitWriteMasksInit::g_LittleBits[buffer->m_iCurBit & 31];
-		else
-			buffer->m_pData[buffer->m_iCurBit >> 5] &= ~CBitWriteMasksInit::g_LittleBits[buffer->m_iCurBit & 31];
-#endif
-
-		++buffer->m_iCurBit;
-	}
 
 	void BfWriteSBitLong(bf_write * buffer, long const data, size_t const numBits)
 	{
@@ -1756,60 +1727,6 @@ namespace SourceSdk
 		} while( *++val != 0 );
 	}
 
-	void GetCommandLineString(basic_string & cmd)
-	{
-#ifdef GNUC
-		char buf[1024];
-		pid_t proc_id = getpid();
-		sprintf(buf, "/proc/%i/cmdline", proc_id);
-		FILE * pFile;
-		pFile = fopen(buf, "r");
-		size_t pos = 0;
-		while (!feof(pFile) && pos < 1023)
-		{
-			int v = fgetc(pFile);
-			buf[pos] = (v == '\0' || v == '\n') ? ' ' : (char)(v);
-			++pos;
-		}
-		buf[pos] = '\0';
-		fclose(pFile);
-		cmd = basic_string(buf);
-#else // WIN32
-		cmd = basic_string(GetCommandLineA());
-#endif
-	}
-
-	void GetGameDir(basic_string & dir)
-	{
-		dir.clear();
-		basic_string cmd;
-		GetCommandLineString(cmd);
-		size_t dir_start = cmd.find("-game");
-		if (dir_start == basic_string::npos) return;
-		dir_start += 5;
-		while (cmd[dir_start] == ' ') ++dir_start;
-		while (cmd[dir_start] != ' ') dir.append(cmd[dir_start++]);
-	}
-
-	void * InterfacesProxy::LoadInterface(CreateInterfaceFn factory, const char * name_no_version, int & loaded_version)
-	{
-		int return_code;
-		void* iface;
-		loaded_version = 50;
-		char s_v[64];
-		do
-		{
-			if (--loaded_version == 0)
-			{
-				iface = nullptr;
-				break;
-			}
-			sprintf(s_v, "%s%03d", name_no_version, loaded_version);
-			iface = (void*)factory(s_v, &return_code);
-		} while (iface == nullptr || return_code == IFACE_FAILED);
-		return iface;
-	}
-
 	std::function<bool(Vector const &, Vector const &, unsigned int, ITraceFilter*)> trace_ray_fn;
 	std::function<bool(Vector const &, Vector const &, Vector const &, unsigned int, ITraceFilter*)> trace_hull_fn;
 
@@ -1863,376 +1780,431 @@ namespace SourceSdk
 		return trace.DidHit();
 	}
 
-	bool InterfacesProxy::Load(CreateInterfaceFn game_factory, CreateInterfaceFn interface_factory)
-	{
-		basic_string game_dir;
-		GetGameDir(game_dir); // Try to see if this works when the server is launched using GUI
-		if (stricmp(game_dir.c_str(), "csgo") == 0)
-		{
-			m_game = SourceSdk::CounterStrikeGlobalOffensive;
-			std::cout << "Detected game CSGO" << std::endl;
-		}
-		else if (stricmp(game_dir.c_str(), "cstrike") == 0)
-		{
-			m_game = CounterStrikeSource;
-			std::cout << "Detected game CSS" << std::endl;
-		}
-		// add more here
-		else
-		{
-			// Could not determine, try to get appid in steam.inf
-			std::cout << "Undetected game ..." << std::endl;
-		}
-
-		m_servergamedll = LoadInterface(game_factory, "ServerGameDLL", m_servergamedll_version);
-		if (m_servergamedll == nullptr) return false;
-		switch (m_servergamedll_version)
-		{
-		case 5:
-		case 6:
-			INIT_VIRTUAL_FUNCTION(m_servergamedll, 9, GetTickInterval);
-			INIT_VIRTUAL_FUNCTION(m_servergamedll, 10, GetAllServerClasses);
-			break;
-		case 9:
-		case 10:
-			INIT_VIRTUAL_FUNCTION(m_servergamedll, 10, GetTickInterval);
-			INIT_VIRTUAL_FUNCTION(m_servergamedll, 11, GetAllServerClasses);
-			break;
-		default:
-			std::cout << "FATAL : Unhandled IServerGameDLL version " << m_servergamedll_version << "\n";
-			return false;
-		};
-
-		m_playerinfomanager = LoadInterface(game_factory, "PlayerInfoManager", m_playerinfomanager_version);
-		if (m_playerinfomanager == nullptr) return false;
-		switch (m_playerinfomanager_version)
-		{
-		case 2:
-			INIT_VIRTUAL_FUNCTION(m_playerinfomanager, 0, GetPlayerInfo);
-			INIT_VIRTUAL_FUNCTION(m_playerinfomanager, 1, GetGlobalVars);
-			break;
-		default:
-			std::cout << "FATAL : Unhandled PlayerInfoManager version " << m_playerinfomanager_version << "\n";
-			return false;
-		};
-
-		m_servergameents = LoadInterface(game_factory, "ServerGameEnts", m_servergameents_version);
-		VT_TRAP
-		if (m_servergameents == nullptr) return false;
-		switch (m_servergameents_version)
-		{
-		case 1:
-#ifdef WIN32
-			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-			{
-				INIT_VIRTUAL_FUNCTION(m_servergameents, 3, BaseEntityToEdict);
-				INIT_VIRTUAL_FUNCTION(m_servergameents, 4, EdictToBaseEntity);
-			}
-			else
-			{
-				INIT_VIRTUAL_FUNCTION(m_servergameents, 4, BaseEntityToEdict);
-				INIT_VIRTUAL_FUNCTION(m_servergameents, 5, EdictToBaseEntity);
-			}
-#else
-			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-			{
-				INIT_VIRTUAL_FUNCTION(m_servergameents, 4, BaseEntityToEdict);
-				INIT_VIRTUAL_FUNCTION(m_servergameents, 5, EdictToBaseEntity);
-			}
-			else
-			{
-				INIT_VIRTUAL_FUNCTION(m_servergameents, 5, BaseEntityToEdict);
-				INIT_VIRTUAL_FUNCTION(m_servergameents, 6, EdictToBaseEntity);
-			}
-#endif
-			break;
-		default:
-			std::cout << "FATAL : Unhandled ServerGameEnts version " << m_servergameents_version << "\n";
-			return false;
-		};
-
-		m_servergameclients = LoadInterface(game_factory, "ServerGameClients", m_servergameclients_version);
-		VT_TRAP
-		if (m_servergameclients == nullptr) return false;
-		switch (m_servergameclients_version)
-		{
-		case 3:
-		case 4:
-			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-			{
-				INIT_VIRTUAL_FUNCTION(m_servergameclients, 13, ClientEarPosition);
-			}
-			else
-			{
-				INIT_VIRTUAL_FUNCTION(m_servergameclients, 12, ClientEarPosition);
-			}
-			break;
-		default:
-			std::cout << "FATAL : Unhandled ServerGameClients version " << m_servergameclients_version << "\n";
-			return false;
-		};
-
-		m_engineserver = LoadInterface(interface_factory, "VEngineServer", m_engineserver_version);
-		VT_TRAP
-		if (m_engineserver == nullptr) return false;
-		switch (m_engineserver_version)
-		{
-		case 23:
-		{
-			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-			{
-				INIT_VIRTUAL_FUNCTION(m_engineserver, 16, GetPlayerUserid);
-				INIT_VIRTUAL_FUNCTION(m_engineserver, 17, GetPlayerNetworkIDString);
-				INIT_VIRTUAL_FUNCTION(m_engineserver, 20, GetEntityCount);
-				// Index of edict
-				// PEntityOfEntIndex
-				INIT_VIRTUAL_FUNCTION(m_engineserver, 21, GetPlayerNetInfo);
-				INIT_VIRTUAL_FUNCTION(m_engineserver, 37, ServerCommand);
-				INIT_VIRTUAL_FUNCTION(m_engineserver, 38, ServerExecute);
-				// UserMessageBegin
-				INIT_VIRTUAL_FUNCTION(m_engineserver, 44, MessageEnd);
-				INIT_VIRTUAL_FUNCTION(m_engineserver, 45, SendUserMessage);
-				INIT_VIRTUAL_FUNCTION(m_engineserver, 72, LogPrint);
-				break;
-			}
-			// For other games, the interface v23 is retrocompatible until v21
-		}
-		case 22:
-		case 21:
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 15, GetPlayerUserid);
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 16, GetPlayerNetworkIDString);
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 17, GetEntityCount);
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 18, IndexOfEdict);
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 19, PEntityOfEntIndex);
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 20, GetPlayerNetInfo);
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 36, ServerCommand);
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 37, ServerExecute);
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 43, UserMessageBegin);
-			// SendUserMessage
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 44, MessageEnd);
-			INIT_VIRTUAL_FUNCTION(m_engineserver, 72, LogPrint);
-			break;
-		default:
-			std::cout << "FATAL : Unhandled VEngineServer version " << m_engineserver_version << "\n";
-			return false;
-		};
-
-		m_gameeventmanager = LoadInterface(interface_factory, "GAMEEVENTSMANAGER", m_gameeventmanager_version);
-		if (m_gameeventmanager == nullptr) return false;
-		switch (m_gameeventmanager_version)
-		{
-		case 2:
-			break;
-		default:
-			std::cout << "FATAL : Unhandled GAMEEVENTSMANAGER version " << m_gameeventmanager_version << "\n";
-			return false;
-		};
-
-		m_serverpluginhelpers = LoadInterface(interface_factory, "ISERVERPLUGINHELPERS", m_serverpluginhelpers_version);
-		if (m_serverpluginhelpers == nullptr) return false;
-		switch (m_serverpluginhelpers_version)
-		{
-		case 1:
-			break;
-		default:
-			std::cout << "FATAL : Unhandled ISERVERPLUGINHELPERS version " << m_serverpluginhelpers_version << "\n";
-			return false;
-		};
-
-		m_enginetrace = LoadInterface(interface_factory, "EngineTraceServer", m_enginetrace_version);
-		if (m_enginetrace == nullptr) return false;
-		switch (m_enginetrace_version)
-		{
-		case 3:
-			INIT_VIRTUAL_FUNCTION(m_enginetrace, 2, ClipRayToEntity);
-			INIT_VIRTUAL_FUNCTION(m_enginetrace, 4, TraceRay);
-			break;
-		case 4:
-			INIT_VIRTUAL_FUNCTION(m_enginetrace, 3, ClipRayToEntity);
-			INIT_VIRTUAL_FUNCTION(m_enginetrace, 5, TraceRay);
-			break;
-		default:
-			std::cout << "FATAL : Unhandled EngineTraceServer version " << m_enginetrace_version << "\n";
-			return false;
-		};
-
-		m_cvar = LoadInterface(interface_factory, "VEngineCvar", m_enginecvar_version);
-		if (m_cvar == nullptr) return false;
-
-		SetupTraceFunctions();
-
-		return true;
-	}
-
-	GameId InterfacesProxy::GetGameId()
-	{
-		return m_game;
-	}
-
-	IServerPluginHelpers001 * InterfacesProxy::GetServerPluginHelpers()
-	{
-		return (IServerPluginHelpers001 *)m_serverpluginhelpers;
-	}
-
-	IGameEventManager002 * InterfacesProxy::GetGameEventManager()
-	{
-		return (IGameEventManager002 *)m_gameeventmanager;
-	}
-
-	void * InterfacesProxy::GetCvar()
-	{
-		return m_cvar;
-	}
-
-	void InterfacesProxy::ICvar_RegisterConCommand(ConCommandBase *pCommandBase)
-	{
-		static_cast<ICvar004*>(m_cvar)->RegisterConCommand(pCommandBase);
-	}
-
-	void InterfacesProxy::ICvar_RegisterConCommand(ConCommandBase_csgo *pCommandBase)
-	{
-		static_cast<ICvar007_csgo*>(m_cvar)->RegisterConCommand(pCommandBase);
-	}
-
-	CVarDLLIdentifier_t InterfacesProxy::ICvar_AllocateDLLIdentifier()
-	{
-		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-		{
-			return static_cast<ICvar007_csgo*>(m_cvar)->AllocateDLLIdentifier();
-		}
-		else
-		{
-			return static_cast<ICvar004*>(m_cvar)->AllocateDLLIdentifier();
-		}
-	}
-
-	void InterfacesProxy::ICvar_UnregisterConCommands(CVarDLLIdentifier_t id)
-	{
-		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-		{
-			static_cast<ICvar007_csgo*>(m_cvar)->UnregisterConCommands(id);
-		}
-		else
-		{
-			static_cast<ICvar004*>(m_cvar)->UnregisterConCommands(id);
-		}
-	}
-
-	void InterfacesProxy::ICvar_UnregisterConCommand(ConCommandBase *pCommandBase)
-	{
-		static_cast<ICvar004*>(m_cvar)->UnregisterConCommand(pCommandBase);
-	}
-
-	void InterfacesProxy::ICvar_UnregisterConCommand(ConCommandBase_csgo *pCommandBase)
-	{
-		static_cast<ICvar007_csgo*>(m_cvar)->UnregisterConCommand(pCommandBase);
-	}
-
-	void* InterfacesProxy::ICvar_FindVar(const char *var_name)
-	{
-		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-		{
-			return static_cast<ICvar007_csgo*>(m_cvar)->FindVar(var_name);
-		}
-		else
-		{
-			return static_cast<ICvar004*>(m_cvar)->FindVar(var_name);
-		}
-	}
-
-	bool InterfacesProxy::ConVar_GetBool(void *convar)
-	{
-		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-		{
-			return static_cast<ConVar_csgo*>(convar)->GetBool();
-		}
-		else
-		{
-			return static_cast<ConVar*>(convar)->GetBool();
-		}
-	}
-
-	template <typename T>
-	void InterfacesProxy::ConVar_SetValue(void *convar, T v)
-	{
-		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-		{
-			return static_cast<ConVar_csgo*>(convar)->SetValue(v);
-		}
-		else
-		{
-			return static_cast<ConVar*>(convar)->SetValue(v);
-		}
-	}
-
-	template <>
-	void InterfacesProxy::ConVar_SetValue<bool>(void *convar, bool v)
-	{
-		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-		{
-			return static_cast<ConVar_csgo*>(convar)->SetValue((int)v);
-		}
-		else
-		{
-			return static_cast<ConVar*>(convar)->SetValue((int)v);
-		}
-	}
-
-	char const * InterfacesProxy::ConCommand_GetName(void const * const command)
-	{
-		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-		{
-			return static_cast<ConCommand_csgo const * const>(command)->GetName();
-		}
-		else
-		{
-			return static_cast<ConCommand const * const>(command)->GetName();
-		}
-	}
-
-	int InterfacesProxy::ConVar_GetInt(void* convar)
-	{
-		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-		{
-			return static_cast<ConVar_csgo*>(convar)->GetInt();
-		}
-		else
-		{
-			return static_cast<ConVar*>(convar)->GetInt();
-		}
-	}
-
-	char const * InterfacesProxy::ConVar_GetString(void *convar)
-	{
-		if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
-		{
-			return static_cast<ConVar_csgo*>(convar)->GetString();
-		}
-		else
-		{
-			return static_cast<ConVar*>(convar)->GetString();
-		}
-	}
-
-	void* InterfacesProxy::ICvar_FindCommand(const char *name)
-	{
-		if (InterfacesProxy::m_game == SourceSdk::CounterStrikeGlobalOffensive)
-		{
-			return static_cast<ICvar007_csgo*>(m_cvar)->FindCommand(name);
-		}
-		else
-		{
-			return static_cast<ICvar004*>(m_cvar)->FindCommand(name);
-		}
-	}
-
-	inline void CopyVirtualFunction(DWORD const * copy_from_vtptr, const int vf_id, DWORD * copy_to_fn)
-	{
-		(*copy_to_fn) = copy_from_vtptr[vf_id];
-	}
-
 	namespace InterfacesProxy
 	{
+
+		void GetCommandLineString(basic_string & cmd)
+		{
+	#ifdef GNUC
+			char buf[1024];
+			pid_t proc_id = getpid();
+			sprintf(buf, "/proc/%i/cmdline", proc_id);
+			FILE * pFile;
+			pFile = fopen(buf, "r");
+			size_t pos = 0;
+			while (!feof(pFile) && pos < 1023)
+			{
+				int v = fgetc(pFile);
+				buf[pos] = (v == '\0' || v == '\n') ? ' ' : (char)(v);
+				++pos;
+			}
+			buf[pos] = '\0';
+			fclose(pFile);
+			cmd = basic_string(buf);
+	#else // WIN32
+			cmd = basic_string(GetCommandLineA());
+	#endif
+		}
+
+		void GetGameDir(basic_string & dir)
+		{
+			dir.clear();
+			basic_string cmd;
+			GetCommandLineString(cmd);
+			size_t dir_start = cmd.find("-game");
+			if (dir_start == basic_string::npos) return;
+			dir_start += 5;
+			while (cmd[dir_start] == ' ') ++dir_start;
+			while (cmd[dir_start] != ' ') dir.append(cmd[dir_start++]);
+		}
+
+		void * LoadInterface(CreateInterfaceFn factory, const char * name_no_version, int & loaded_version)
+		{
+			int return_code;
+			void* iface;
+			loaded_version = 50;
+			char s_v[64];
+			do
+			{
+				if (--loaded_version == 0)
+				{
+					iface = nullptr;
+					break;
+				}
+				sprintf(s_v, "%s%03d", name_no_version, loaded_version);
+				iface = (void*)factory(s_v, &return_code);
+			} while (iface == nullptr || return_code == IFACE_FAILED);
+			return iface;
+		}
+
+		bool Load(CreateInterfaceFn game_factory, CreateInterfaceFn interface_factory)
+		{
+			basic_string game_dir;
+			GetGameDir(game_dir); // Try to see if this works when the server is launched using GUI
+			if (stricmp(game_dir.c_str(), "csgo") == 0)
+			{
+				m_game = SourceSdk::CounterStrikeGlobalOffensive;
+				std::cout << "Detected game CSGO" << std::endl;
+			}
+			else if (stricmp(game_dir.c_str(), "cstrike") == 0)
+			{
+				m_game = CounterStrikeSource;
+				std::cout << "Detected game CSS" << std::endl;
+			}
+			// add more here
+			else
+			{
+				// Could not determine, try to get appid in steam.inf
+				std::cout << "Undetected game ..." << std::endl;
+			}
+
+			m_servergamedll = LoadInterface(game_factory, "ServerGameDLL", m_servergamedll_version);
+			if (m_servergamedll == nullptr) return false;
+			switch (m_servergamedll_version)
+			{
+			case 5:
+			case 6:
+				INIT_VIRTUAL_FUNCTION(m_servergamedll, 9, GetTickInterval);
+				INIT_VIRTUAL_FUNCTION(m_servergamedll, 10, GetAllServerClasses);
+				break;
+			case 9:
+			case 10:
+				INIT_VIRTUAL_FUNCTION(m_servergamedll, 10, GetTickInterval);
+				INIT_VIRTUAL_FUNCTION(m_servergamedll, 11, GetAllServerClasses);
+				break;
+			default:
+				std::cout << "FATAL : Unhandled IServerGameDLL version " << m_servergamedll_version << "\n";
+				return false;
+			};
+
+			m_playerinfomanager = LoadInterface(game_factory, "PlayerInfoManager", m_playerinfomanager_version);
+			if (m_playerinfomanager == nullptr) return false;
+			switch (m_playerinfomanager_version)
+			{
+			case 2:
+				INIT_VIRTUAL_FUNCTION(m_playerinfomanager, 0, GetPlayerInfo);
+				INIT_VIRTUAL_FUNCTION(m_playerinfomanager, 1, GetGlobalVars);
+				break;
+			default:
+				std::cout << "FATAL : Unhandled PlayerInfoManager version " << m_playerinfomanager_version << "\n";
+				return false;
+			};
+
+			m_servergameents = LoadInterface(game_factory, "ServerGameEnts", m_servergameents_version);
+			VT_TRAP
+			if (m_servergameents == nullptr) return false;
+			switch (m_servergameents_version)
+			{
+			case 1:
+	#ifdef WIN32
+				if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+				{
+					INIT_VIRTUAL_FUNCTION(m_servergameents, 3, BaseEntityToEdict);
+					INIT_VIRTUAL_FUNCTION(m_servergameents, 4, EdictToBaseEntity);
+				}
+				else
+				{
+					INIT_VIRTUAL_FUNCTION(m_servergameents, 4, BaseEntityToEdict);
+					INIT_VIRTUAL_FUNCTION(m_servergameents, 5, EdictToBaseEntity);
+				}
+	#else
+				if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+				{
+					INIT_VIRTUAL_FUNCTION(m_servergameents, 4, BaseEntityToEdict);
+					INIT_VIRTUAL_FUNCTION(m_servergameents, 5, EdictToBaseEntity);
+				}
+				else
+				{
+					INIT_VIRTUAL_FUNCTION(m_servergameents, 5, BaseEntityToEdict);
+					INIT_VIRTUAL_FUNCTION(m_servergameents, 6, EdictToBaseEntity);
+				}
+	#endif
+				break;
+			default:
+				std::cout << "FATAL : Unhandled ServerGameEnts version " << m_servergameents_version << "\n";
+				return false;
+			};
+
+			m_servergameclients = LoadInterface(game_factory, "ServerGameClients", m_servergameclients_version);
+			VT_TRAP
+			if (m_servergameclients == nullptr) return false;
+			switch (m_servergameclients_version)
+			{
+			case 3:
+			case 4:
+				if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+				{
+					INIT_VIRTUAL_FUNCTION(m_servergameclients, 13, ClientEarPosition);
+				}
+				else
+				{
+					INIT_VIRTUAL_FUNCTION(m_servergameclients, 12, ClientEarPosition);
+				}
+				break;
+			default:
+				std::cout << "FATAL : Unhandled ServerGameClients version " << m_servergameclients_version << "\n";
+				return false;
+			};
+
+			m_engineserver = LoadInterface(interface_factory, "VEngineServer", m_engineserver_version);
+			VT_TRAP
+			if (m_engineserver == nullptr) return false;
+			switch (m_engineserver_version)
+			{
+			case 23:
+			{
+				if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+				{
+					INIT_VIRTUAL_FUNCTION(m_engineserver, 16, GetPlayerUserid);
+					INIT_VIRTUAL_FUNCTION(m_engineserver, 17, GetPlayerNetworkIDString);
+					INIT_VIRTUAL_FUNCTION(m_engineserver, 20, GetEntityCount);
+					// Index of edict
+					// PEntityOfEntIndex
+					INIT_VIRTUAL_FUNCTION(m_engineserver, 21, GetPlayerNetInfo);
+					INIT_VIRTUAL_FUNCTION(m_engineserver, 37, ServerCommand);
+					INIT_VIRTUAL_FUNCTION(m_engineserver, 38, ServerExecute);
+					// UserMessageBegin
+					INIT_VIRTUAL_FUNCTION(m_engineserver, 44, MessageEnd);
+					INIT_VIRTUAL_FUNCTION(m_engineserver, 45, SendUserMessage);
+					INIT_VIRTUAL_FUNCTION(m_engineserver, 72, LogPrint);
+					break;
+				}
+				// For other games, the interface v23 is retrocompatible until v21
+			}
+			case 22:
+			case 21:
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 15, GetPlayerUserid);
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 16, GetPlayerNetworkIDString);
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 17, GetEntityCount);
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 18, IndexOfEdict);
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 19, PEntityOfEntIndex);
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 20, GetPlayerNetInfo);
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 36, ServerCommand);
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 37, ServerExecute);
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 43, UserMessageBegin);
+				// SendUserMessage
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 44, MessageEnd);
+				INIT_VIRTUAL_FUNCTION(m_engineserver, 72, LogPrint);
+				break;
+			default:
+				std::cout << "FATAL : Unhandled VEngineServer version " << m_engineserver_version << "\n";
+				return false;
+			};
+
+			m_gameeventmanager = LoadInterface(interface_factory, "GAMEEVENTSMANAGER", m_gameeventmanager_version);
+			if (m_gameeventmanager == nullptr) return false;
+			switch (m_gameeventmanager_version)
+			{
+			case 2:
+				break;
+			default:
+				std::cout << "FATAL : Unhandled GAMEEVENTSMANAGER version " << m_gameeventmanager_version << "\n";
+				return false;
+			};
+
+			m_serverpluginhelpers = LoadInterface(interface_factory, "ISERVERPLUGINHELPERS", m_serverpluginhelpers_version);
+			if (m_serverpluginhelpers == nullptr) return false;
+			switch (m_serverpluginhelpers_version)
+			{
+			case 1:
+				break;
+			default:
+				std::cout << "FATAL : Unhandled ISERVERPLUGINHELPERS version " << m_serverpluginhelpers_version << "\n";
+				return false;
+			};
+
+			m_enginetrace = LoadInterface(interface_factory, "EngineTraceServer", m_enginetrace_version);
+			if (m_enginetrace == nullptr) return false;
+			switch (m_enginetrace_version)
+			{
+			case 3:
+				INIT_VIRTUAL_FUNCTION(m_enginetrace, 2, ClipRayToEntity);
+				INIT_VIRTUAL_FUNCTION(m_enginetrace, 4, TraceRay);
+				break;
+			case 4:
+				INIT_VIRTUAL_FUNCTION(m_enginetrace, 3, ClipRayToEntity);
+				INIT_VIRTUAL_FUNCTION(m_enginetrace, 5, TraceRay);
+				break;
+			default:
+				std::cout << "FATAL : Unhandled EngineTraceServer version " << m_enginetrace_version << "\n";
+				return false;
+			};
+
+			m_cvar = LoadInterface(interface_factory, "VEngineCvar", m_enginecvar_version);
+			if (m_cvar == nullptr) return false;
+
+			SetupTraceFunctions();
+
+			return true;
+		}
+
+		GameId GetGameId()
+		{
+			return m_game;
+		}
+
+		IServerPluginHelpers001 * GetServerPluginHelpers()
+		{
+			return (IServerPluginHelpers001 *)m_serverpluginhelpers;
+		}
+
+		IGameEventManager002 * GetGameEventManager()
+		{
+			return (IGameEventManager002 *)m_gameeventmanager;
+		}
+
+		void * GetCvar()
+		{
+			return m_cvar;
+		}
+
+		void ICvar_RegisterConCommand(ConCommandBase *pCommandBase)
+		{
+			static_cast<ICvar004*>(m_cvar)->RegisterConCommand(pCommandBase);
+		}
+
+		void ICvar_RegisterConCommand(ConCommandBase_csgo *pCommandBase)
+		{
+			static_cast<ICvar007_csgo*>(m_cvar)->RegisterConCommand(pCommandBase);
+		}
+
+		CVarDLLIdentifier_t ICvar_AllocateDLLIdentifier()
+		{
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				return static_cast<ICvar007_csgo*>(m_cvar)->AllocateDLLIdentifier();
+			}
+			else
+			{
+				return static_cast<ICvar004*>(m_cvar)->AllocateDLLIdentifier();
+			}
+		}
+
+		void ICvar_UnregisterConCommands(CVarDLLIdentifier_t id)
+		{
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				static_cast<ICvar007_csgo*>(m_cvar)->UnregisterConCommands(id);
+			}
+			else
+			{
+				static_cast<ICvar004*>(m_cvar)->UnregisterConCommands(id);
+			}
+		}
+
+		void ICvar_UnregisterConCommand(ConCommandBase *pCommandBase)
+		{
+			static_cast<ICvar004*>(m_cvar)->UnregisterConCommand(pCommandBase);
+		}
+
+		void ICvar_UnregisterConCommand(ConCommandBase_csgo *pCommandBase)
+		{
+			static_cast<ICvar007_csgo*>(m_cvar)->UnregisterConCommand(pCommandBase);
+		}
+
+		void* ICvar_FindVar(const char *var_name)
+		{
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				return static_cast<ICvar007_csgo*>(m_cvar)->FindVar(var_name);
+			}
+			else
+			{
+				return static_cast<ICvar004*>(m_cvar)->FindVar(var_name);
+			}
+		}
+
+		bool ConVar_GetBool(void *convar)
+		{
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				return static_cast<ConVar_csgo*>(convar)->GetBool();
+			}
+			else
+			{
+				return static_cast<ConVar*>(convar)->GetBool();
+			}
+		}
+
+		template <typename T>
+		void ConVar_SetValue(void *convar, T v)
+		{
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				return static_cast<ConVar_csgo*>(convar)->SetValue(v);
+			}
+			else
+			{
+				return static_cast<ConVar*>(convar)->SetValue(v);
+			}
+		}
+
+		template <>
+		void ConVar_SetValue<bool>(void *convar, bool v)
+		{
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				return static_cast<ConVar_csgo*>(convar)->SetValue((int)v);
+			}
+			else
+			{
+				return static_cast<ConVar*>(convar)->SetValue((int)v);
+			}
+		}
+
+		char const * ConCommand_GetName(void const * const command)
+		{
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				return static_cast<ConCommand_csgo const * const>(command)->GetName();
+			}
+			else
+			{
+				return static_cast<ConCommand const * const>(command)->GetName();
+			}
+		}
+
+		int ConVar_GetInt(void* convar)
+		{
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				return static_cast<ConVar_csgo*>(convar)->GetInt();
+			}
+			else
+			{
+				return static_cast<ConVar*>(convar)->GetInt();
+			}
+		}
+
+		char const * ConVar_GetString(void *convar)
+		{
+			if (m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				return static_cast<ConVar_csgo*>(convar)->GetString();
+			}
+			else
+			{
+				return static_cast<ConVar*>(convar)->GetString();
+			}
+		}
+
+		void* ICvar_FindCommand(const char *name)
+		{
+			if (InterfacesProxy::m_game == SourceSdk::CounterStrikeGlobalOffensive)
+			{
+				return static_cast<ICvar007_csgo*>(m_cvar)->FindCommand(name);
+			}
+			else
+			{
+				return static_cast<ICvar004*>(m_cvar)->FindCommand(name);
+			}
+		}
+
+		inline void CopyVirtualFunction(DWORD const * copy_from_vtptr, const int vf_id, DWORD * copy_to_fn)
+		{
+			(*copy_to_fn) = copy_from_vtptr[vf_id];
+		}
+
 		GameId m_game = CounterStrikeSource;
 
 		void* m_enginetrace = nullptr;

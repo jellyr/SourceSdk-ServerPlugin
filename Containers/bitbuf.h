@@ -4,7 +4,7 @@
 #include "SdkPreprocessors.h"
 
 #ifdef GNUC
-#	include <bitops.h>
+//#	include <bitops.h>
 #else
 #include <intrin.h>
 #endif
@@ -23,13 +23,42 @@ namespace SourceSdk
 	};
 	
 	typedef bf_write bf_read;
+
+	class CBitWriteMasksInit
+	{
+	public:
+		static unsigned long g_LittleBits[32];
+
+		CBitWriteMasksInit()
+		{
+			for (unsigned int littleBit = 0; littleBit < 32; littleBit++)
+				(&g_LittleBits[littleBit])[0] = LittleDWord(1u << littleBit);
+		}
+	};
+
+	extern CBitWriteMasksInit g_BitWriteMasksInit;
 	
 	void BfWriteShort(bf_write* buffer, int val);
 	void BfWriteByte(bf_write* buffer, int val);
 	void BfWriteChar(bf_write* buffer, int val);
 	void BfWriteString(bf_write* buffer, const char * val);
 	int BfGetNumBitsLeft(bf_write const * buffer);
-	inline void BfWriteBit(bf_write * buffer, int value);
+	inline void BfWriteBit(bf_write * buffer, int value)
+	{
+#if __i386__
+		if (value)
+			buffer->m_pData[buffer->m_iCurBit >> 5] |= 1u << (buffer->m_iCurBit & 31);
+		else
+			buffer->m_pData[buffer->m_iCurBit >> 5] &= ~(1u << (buffer->m_iCurBit & 31));
+#else
+		if (value)
+			buffer->m_pData[buffer->m_iCurBit >> 5] |= CBitWriteMasksInit::g_LittleBits[buffer->m_iCurBit & 31];
+		else
+			buffer->m_pData[buffer->m_iCurBit >> 5] &= ~CBitWriteMasksInit::g_LittleBits[buffer->m_iCurBit & 31];
+#endif
+
+		++buffer->m_iCurBit;
+	}
 	void BfWriteSBitLong(bf_write * buffer, long const data, size_t const numBits);
 
 	template <typename type>
@@ -57,8 +86,8 @@ namespace SourceSdk
 		do
 		{
 #ifdef GNUC
-			//BfWriteBit(buffer, !!(v.bits & (1 << i)));
-			BfWriteBit(buffer, constant_test_bit(i, &(v.bits)));
+			BfWriteBit(buffer, !!(v.bits & (1 << i)));
+			//BfWriteBit(buffer, constant_test_bit(i, &(v.bits)));
 #else
 			BfWriteBit(buffer, _bittest(&(v.bits), i));
 #endif

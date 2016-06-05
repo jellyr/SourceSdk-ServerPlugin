@@ -59,10 +59,6 @@ struct Ray_t;
 
 namespace SourceSdk
 {
-	void CopyVirtualFunction(DWORD const * copy_from_vtptr, const int vf_id, DWORD * copy_to_fn);
-	void GetCommandLineString(basic_string & cmd);
-	void GetGameDir(basic_string & dir);
-
 	enum GameId
 	{
 		CounterStrikeSource = 1,
@@ -74,6 +70,10 @@ namespace SourceSdk
 
 	namespace InterfacesProxy
 	{
+		void CopyVirtualFunction(DWORD const * copy_from_vtptr, const int vf_id, DWORD * copy_to_fn);
+		void GetCommandLineString(basic_string & cmd);
+		void GetGameDir(basic_string & dir);
+
 		extern GameId m_game;
 
 		extern void* m_enginetrace;

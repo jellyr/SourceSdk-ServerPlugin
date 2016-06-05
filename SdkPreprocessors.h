@@ -407,10 +407,6 @@ template <class T>
 inline void Destruct(T* pMemory)
 {
 	pMemory->~T();
-
-#ifdef _DEBUG
-	memset(reinterpret_cast<void*>(pMemory), 0xDD, sizeof(T));
-#endif
 }
 
 namespace SourceSdk
