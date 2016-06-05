@@ -103,6 +103,9 @@ namespace SourceSdk
 		extern void* m_cvar;
 		extern int m_enginecvar_version;
 
+		typedef void(VFNT *ClipRayToEntity_t)(void const * const, void * ray, unsigned int fMask, IHandleEntity *pEnt, void *pTrace);
+		extern volatile ClipRayToEntity_t _vfptr_ClipRayToEntity;
+
 		typedef float(VFNT * GetTickInterval_t)(void const * const);
 		extern volatile GetTickInterval_t _vfptr_GetTickInterval;
 
@@ -162,6 +165,8 @@ namespace SourceSdk
 
 		typedef void(VFNT * TraceRay_t)(void const * const, void const *, unsigned int, ITraceFilter*, void*);
 		extern volatile TraceRay_t _vfptr_TraceRay;
+
+		void Call_ClipRayToEntity(void * ray, unsigned int fMask, IHandleEntity *pEnt, void *pTrace);
 
 		float Call_GetTickInterval();
 

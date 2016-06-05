@@ -2044,9 +2044,11 @@ namespace SourceSdk
 		switch (m_enginetrace_version)
 		{
 		case 3:
+			INIT_VIRTUAL_FUNCTION(m_enginetrace, 2, ClipRayToEntity);
 			INIT_VIRTUAL_FUNCTION(m_enginetrace, 4, TraceRay);
 			break;
 		case 4:
+			INIT_VIRTUAL_FUNCTION(m_enginetrace, 3, ClipRayToEntity);
 			INIT_VIRTUAL_FUNCTION(m_enginetrace, 5, TraceRay);
 			break;
 		default:
@@ -2260,6 +2262,8 @@ namespace SourceSdk
 		void* m_cvar = nullptr;
 		int m_enginecvar_version = 0;
 
+		volatile ClipRayToEntity_t _vfptr_ClipRayToEntity = nullptr;
+
 		volatile GetTickInterval_t _vfptr_GetTickInterval = nullptr;
 
 		volatile GetAllServerClasses_t _vfptr_GetAllServerClasses = nullptr;
@@ -2299,6 +2303,11 @@ namespace SourceSdk
 		volatile LogPrint_t _vfptr_LogPrint = nullptr;
 
 		volatile TraceRay_t _vfptr_TraceRay = nullptr;
+
+		void Call_ClipRayToEntity(void * ray, unsigned int fMask, IHandleEntity *pEnt, void *pTrace)
+		{
+			_vfptr_ClipRayToEntity(m_enginetrace, ray, fMask, pEnt, pTrace);
+		}
 
 		float Call_GetTickInterval()
 		{
