@@ -2320,14 +2320,14 @@ namespace SourceSdk
 			return _vfptr_GetGlobalVars(m_playerinfomanager);
 		}
 
-		edict_t* Call_BaseEntityToEdict(CBaseEntity* entity)
+		edict_t* Call_BaseEntityToEdict(void * const entity)
 		{
-			return _vfptr_BaseEntityToEdict(m_servergameents, entity);
+			return _vfptr_BaseEntityToEdict(m_servergameents, const_cast<void*>(entity));
 		}
 
-		CBaseEntity* Call_EdictToBaseEntity(edict_t* entity)
+		CBaseEntity* Call_EdictToBaseEntity(edict_t const * const entity)
 		{
-			return _vfptr_EdictToBaseEntity(m_servergameents, entity);
+			return _vfptr_EdictToBaseEntity(m_servergameents, const_cast<edict_t*>(entity));
 		}
 
 		void Call_ClientEarPosition(edict_t* player, Vector* position)

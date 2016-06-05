@@ -472,6 +472,7 @@ namespace SourceSdk
 		void		Construct(PropType *pProps, int nProps, char *pNetTableName );
 		const char*	GetName() const;
 		int			GetNumProps() const;
+#undef GetProp
 		PropType*	GetProp( int i );
 		bool		IsInitialized() const;
 		void		SetInitialized( bool bInitialized );
@@ -546,6 +547,7 @@ namespace SourceSdk
 		void		Construct(PropType *pProps, int nProps, char *pNetTableName);
 		const char*	GetName() const;
 		int			GetNumProps() const;
+#undef GetProp
 		PropType*	GetProp(int i);
 		bool		IsInitialized() const;
 		void		SetInitialized(bool bInitialized);

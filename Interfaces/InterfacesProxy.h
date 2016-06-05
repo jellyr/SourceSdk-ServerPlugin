@@ -115,7 +115,7 @@ namespace SourceSdk
 		typedef void*(VFNT * GetGlobalVars_t)(void const * const);
 		extern volatile GetGlobalVars_t _vfptr_GetGlobalVars;
 
-		typedef edict_t*(VFNT * BaseEntityToEdict_t)(void const * const, CBaseEntity*);
+		typedef edict_t*(VFNT * BaseEntityToEdict_t)(void const * const, void*);
 		extern volatile BaseEntityToEdict_t _vfptr_BaseEntityToEdict;
 
 		typedef CBaseEntity*(VFNT * EdictToBaseEntity_t)(void const * const, edict_t*);
@@ -171,9 +171,9 @@ namespace SourceSdk
 
 		void* Call_GetGlobalVars();
 
-		edict_t* Call_BaseEntityToEdict(CBaseEntity*);
+		edict_t* Call_BaseEntityToEdict(void * const);
 
-		CBaseEntity* Call_EdictToBaseEntity(edict_t*);
+		CBaseEntity* Call_EdictToBaseEntity(edict_t const * const);
 
 		void Call_ClientEarPosition(edict_t*, Vector*);
 
