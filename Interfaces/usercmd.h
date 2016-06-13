@@ -21,7 +21,7 @@ namespace SourceSdk
 		CUserCmd()
 		{
 		}
-		virtual ~CUserCmd() { };
+		~CUserCmd() { };
 		CUserCmd& operator =(const CUserCmd& src)
 		{
 			if (this == &src)
@@ -56,7 +56,7 @@ namespace SourceSdk
 		CUserCmd_csgo()
 		{
 		}
-		virtual ~CUserCmd_csgo() { };
+		~CUserCmd_csgo() { };
 		CUserCmd_csgo& operator =(const CUserCmd_csgo& src)
 		{
 			if (this == &src)
