@@ -27,7 +27,21 @@ namespace SourceSdk
 			if (this == &src)
 				return *this;
 
-			memcpy(this, &src, sizeof(CUserCmd));
+			//memcpy(this, &src, sizeof(CUserCmd)); // Don't copy the virtual table ...
+
+			command_number = src.command_number;
+			tick_count = src.tick_count;
+			VectorCopy(src.viewangles, viewangles);
+			forwardmove = src.forwardmove;
+			sidemove = src.sidemove;
+			upmove = src.upmove;
+			buttons = src.buttons;
+			impulse = src.impulse;
+			weaponselect = src.weaponselect;
+			weaponsubtype = src.weaponsubtype;
+			random_seed = src.random_seed;
+			mousedx = src.mousedx;
+			mousedy = src.mousedy;
 
 			return *this;
 		}
@@ -62,7 +76,22 @@ namespace SourceSdk
 			if (this == &src)
 				return *this;
 
-			memcpy(this, &src, sizeof(CUserCmd_csgo));
+			//memcpy(this, &src, sizeof(CUserCmd_csgo)); // Don't copy the virtual table ...
+
+			command_number = src.command_number;
+			tick_count = src.tick_count;
+			VectorCopy(src.viewangles, viewangles);
+			VectorCopy(src.aimdirection, aimdirection);
+			forwardmove = src.forwardmove;
+			sidemove = src.sidemove;
+			upmove = src.upmove;
+			buttons = src.buttons;
+			impulse = src.impulse;
+			weaponselect = src.weaponselect;
+			weaponsubtype = src.weaponsubtype;
+			random_seed = src.random_seed;
+			mousedx = src.mousedx;
+			mousedy = src.mousedy;
 
 			return *this;
 		}
