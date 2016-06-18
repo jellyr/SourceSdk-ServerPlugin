@@ -75,23 +75,19 @@ namespace SourceSdk
 	};
 
 	template <typename type, size_t numBits>
-	void BfWriteNBits(bf_write * buffer, type const data)
+	void BfWriteNBits(bf_write * buffer, to_bits<type> const data)
 	{
 		static_assert(numBits <= sizeof(type) * 4, "Bits overflow");
 		static_assert(numBits > 0, "No bits to write");
 
-		to_bits<type> const v(data);
+		constexpr long const max_bit = 1 << numBits;
+		long z = 1;
 
-		size_t i = 0;
 		do
 		{
-#ifdef GNUC
-			BfWriteBit(buffer, !!(v.bits & (1 << i)));
-			//BfWriteBit(buffer, constant_test_bit(i, &(v.bits)));
-#else
-			BfWriteBit(buffer, _bittest(&(v.bits), i));
-#endif
-		} while (++i < numBits);
+			BfWriteBit(buffer, data.bits & z);
+			z <<= 1;
+		} while (z < max_bit);
 	}
 
 };
