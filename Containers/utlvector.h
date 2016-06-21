@@ -399,6 +399,10 @@
 		int AddToTail( const T& src );
 		int InsertBefore( int elem, const T& src );
 		int InsertAfter( int elem, const T& src );
+		int AddToHead(T&& src);
+		int AddToTail(T&& src);
+		int InsertBefore(int elem, T&& src);
+		int InsertAfter(int elem, T&& src);
 		int AddMultipleToHead( int num );
 		int AddMultipleToTail( int num, const T *pToCopy=NULL );	   
 		int InsertMultipleBefore( int elem, int num, const T *pToCopy=NULL );
@@ -668,9 +672,21 @@
 	}
 
 	template< typename T, class A >
+	inline int CUtlVector<T, A>::AddToHead(T&& src)
+	{
+		return InsertBefore(0, src);
+	}
+
+	template< typename T, class A >
 	inline int CUtlVector<T, A>::AddToTail( const T& src )
 	{
 		return InsertBefore( m_Size, src );
+	}
+
+	template< typename T, class A >
+	inline int CUtlVector<T, A>::AddToTail(T&& src)
+	{
+		return InsertBefore(m_Size, src);
 	}
 
 	template< typename T, class A >
@@ -680,11 +696,26 @@
 	}
 
 	template< typename T, class A >
+	inline int CUtlVector<T, A>::InsertAfter(int elem, T&& src)
+	{
+		return InsertBefore(elem + 1, src);
+	}
+
+	template< typename T, class A >
 	int CUtlVector<T, A>::InsertBefore( int elem, const T& src )
 	{
 		GrowVector();
 		ShiftElementsRight(elem);
 		new (&Element(elem)) T( src );
+		return elem;
+	}
+
+	template< typename T, class A >
+	int CUtlVector<T, A>::InsertBefore(int elem, T&& src)
+	{
+		GrowVector();
+		ShiftElementsRight(elem);
+		new (&Element(elem)) T(src);
 		return elem;
 	}
 
