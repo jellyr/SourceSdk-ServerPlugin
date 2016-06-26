@@ -37,7 +37,7 @@ namespace SourceSdk
 		virtual const char     *GetPluginDescription( void ) = 0;      
 		virtual void			LevelInit( char const *pMapName ) = 0;
 		virtual void			ServerActivate( edict_t *pEdictList, int edictCount, int clientMax ) = 0;
-		virtual void			GameFrame( bool simulating ) = 0;
+		virtual void			RT_GameFrame( bool simulating ) = 0;
 		virtual void			LevelShutdown( void ) = 0;
 		virtual void			ClientActive( edict_t *pEntity ) = 0;
 		virtual void            ClientFullyConnect(edict_t *) = 0;
@@ -46,9 +46,9 @@ namespace SourceSdk
 		virtual void			SetCommandClient( int index ) = 0;
 		virtual void			ClientSettingsChanged( edict_t *pEdict ) = 0;
 		virtual PLUGIN_RESULT	ClientConnect( bool *bAllowConnect, edict_t *pEntity, const char *pszName, const char *pszAddress, char *reject, int maxrejectlen ) = 0;
-		virtual PLUGIN_RESULT	ClientCommand( edict_t *pEntity, const CCommand &args ) = 0;
+		virtual PLUGIN_RESULT	RT_ClientCommand( edict_t *pEntity, const CCommand &args ) = 0;
 		virtual PLUGIN_RESULT	NetworkIDValidated( const char *pszUserName, const char *pszNetworkID ) = 0;
-		virtual void			OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, edict_t *pPlayerEntity, EQueryCvarValueStatus eStatus, const char *pCvarName, const char *pCvarValue ) = 0;
+		virtual void			RT_OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, edict_t *pPlayerEntity, EQueryCvarValueStatus eStatus, const char *pCvarName, const char *pCvarValue ) = 0;
 		virtual void			OnEdictAllocated( edict_t *edict ) = 0;
 		virtual void			OnEdictFreed( const edict_t *edict  ) = 0;	
 	};
