@@ -79,3 +79,15 @@ $RECYCLE.BIN/
 *.lnk
 Interfaces/Protobuf/pax_global_header
 Interfaces/Protobuf/protobuf-2.5.0.tar
+Interfaces/Protobuf/protobuf-2.5.0/Makefile
+Interfaces/Protobuf/protobuf-2.5.0/compile
+Interfaces/Protobuf/protobuf-2.5.0/configure
+Interfaces/Protobuf/protobuf-2.5.0/depcomp
+Interfaces/Protobuf/protobuf-2.5.0/gtest/
+Interfaces/Protobuf/protobuf-2.5.0/install-sh
+Interfaces/Protobuf/protobuf-2.5.0/libtool
+Interfaces/Protobuf/protobuf-2.5.0/missing
+Interfaces/Protobuf/protobuf-2.5.0/src/
+Interfaces/Protobuf/protobuf-2.5.0/stamp-h1
+Interfaces/Protobuf/protobuf-2.5.0/test-driver
+
