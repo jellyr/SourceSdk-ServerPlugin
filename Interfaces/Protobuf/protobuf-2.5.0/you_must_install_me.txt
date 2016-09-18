@@ -1,1 +1,5 @@
 https://github.com/google/protobuf/archive/v2.5.0.zip
+
+Merge the content of protobuf-2.5.0 into the folder containing this file.
+
+After that, extract https://github.com/google/googletest/archive/release-1.5.0.zip into protobuf-2.5.0 and rename the extracted folder into gtest.
